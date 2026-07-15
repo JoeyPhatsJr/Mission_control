@@ -4,45 +4,78 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project
 
-`space-explorer/index.html` — a self-contained space launch tracker called **Mission Control**. No build step, no dependencies to install. Open the file directly in a browser.
+`space-explorer/index.html` — a self-contained space launch tracker called **Mission Control** (console build MC-2). No build step, no dependencies to install. Open the file directly in a browser.
 
 ```
 open space-explorer/index.html
 ```
 
+`index.baseline.html` is the pre-rebuild version, kept for reference. `fable-rebuild-prompt.md` is the brief the rebuild was built against (design system, hard constraints, feature mandate, self-check list).
+
 ## Architecture
 
-The entire app is a single HTML file (~878 lines) with embedded CSS and JavaScript. No bundler, no framework, no npm.
+The entire app is a single HTML file (~4,080 lines) with embedded CSS and JavaScript. No bundler, no framework, no npm. The JS is organized into numbered sections: utilities, providers, status, images, pads, seed data, data layer, state, watchlist/reminders/calendar (§7b), countdown engine, render helpers, missions, timeline, companies, analytics (§12b), globe, modal, launch feed (§14b), mission clock (§14c), palette, deep-linking (§16b), polish/tz/alerts (§16c), tabs/theme/starfield, events, boot.
 
-**Four tabs / sections** (tab switching via `showTab()`):
-- **Missions** — upcoming + recent launch cards with live countdowns; clicking a card opens the detail modal
-- **Timeline** — filterable table grouped by month
-- **3D Globe** — interactive globe with launch sites, satellites, ISS live tracking
-- **Companies** — static company cards (data hardcoded in JS)
+**Five tabs** (ARIA tablist, `switchTab()`):
+- **Missions** — NEXT LAUNCH hero (live countdown, launch-window progress bar, IMMINENT state under 1 h, LIFTOFF state after T-0, "Open Dossier" + "◎ Mission Clock" buttons), count-up stat row, a ★ watchlist filter chip + sort + provider/status filter chips, upcoming/recent card grids (each card has a ★ star)
+- **Timeline** — month-grouped rows with provider color legend, All/Upcoming/Past ranges, compact density toggle, inline expandable rows (one at a time)
+- **Globe** — `globe.gl` wireframe globe (no photo texture): pad points sized by launch count, animated provider-colored launch arcs, a **day/night terminator** polygon, and **three tracked craft** (ISS live + Tiangong & Hubble simulated) each with a fading ground-track trail and a full-orbit ground track, shown in a multi-craft HUD; degrades to a static site registry if the CDN/WebGL fails
+- **Analytics** — fleet telemetry dashboard (`renderAnalytics`): a live **Space Weather** panel (NOAA Kp, `spaceWxCardHTML`, top of the grid — only when the feed succeeds), 4 headline stat tiles, launches-by-provider bars (provider-colored), busiest-pads bars (deduped by pad name), a stacked mission-outcomes bar (status colors), a flown-vs-upcoming monthly cadence column chart, an **orbit-distribution** bar chart, and a **Records & Milestones** panel (success streak, busiest month, launches this year, longest gap, most-flown vehicle, reused boosters). Pure HTML/CSS marks (no chart lib) — `.bar-fill` needs `display:block` + `width:100%` since it's a `<span>`, then animates via `transform:scaleX`. Re-grows from 0 on each tab visit.
+- **Companies** — operator cards with dataset-derived counts (static all-time figures marked `≈`), recent-form ✓/✕ ticks; clicking filters Missions/Timeline to that provider
 
-**External libraries (CDN only):**
-- `globe.gl@2.27.2` — 3D globe rendering
+**Offline-first:** boot paints the embedded seed dataset (17 upcoming + 16 past, real pads with accurate lat/lon, NETs anchored to `Date.now()` so countdowns are always live) instantly, then silently upgrades to live data. The feed strategy (`loadFeed`) tries **Launch Library 2** (richest) first, falls back to **rocketlaunch.live**, then keeps seed. The nav badge reports provenance: `LIVE DATA` / `CACHED` / `LIVE + SAMPLE` (only when a source returns no past launches — e.g. the free rocketlaunch.live tier) / `SAMPLE DATA`; the footer names the actual source (`S.feedProvider`: `ll2` | `rll` | `seed`).
 
-**External APIs:**
-- `https://fdo.rocketlaunch.live/json/launches/next/15` and `/past/15` — launch data (cached in `sessionStorage` for 5 min)
-- `https://api.wheretheiss.at/v1/satellites/25544` — ISS live position (polled every 5 s)
+**External libraries (CDN only):** `globe.gl@2.27.2` (unpkg) — injected lazily on first Globe-tab visit, never in initial page load. Google Fonts (Oxanium, JetBrains Mono, DM Sans).
+
+**External APIs** (all keyless; every one degrades cleanly to prior behaviour if unreachable — this is a hard requirement, the app must stay fully functional offline from `file://`):
+- `https://ll.thespacedevs.com/2.3.0/launches/{upcoming,previous}/?mode=detailed` — **primary** feed (`loadLL2`/`normalizeLL2`). Adds real **crew** (`rocket.spacecraft_stage[].launch_crew[]` → `l.crew`), an official **probability** (`l.probability`, 0–100 or null → drives the Go Call "official" number), weather concerns, and real **past** launches. Rate-limited (~15 req/hr unauth) → cached 30 min (`LL2_TTL`, keys `mc2-ll2up`/`mc2-ll2past`). **Images are intentionally not taken from LL2** (its CDN is unverified on `file://`) — the Flickr chain still supplies photos.
+- `https://fdo.rocketlaunch.live/json/launches/next/15` and `/past/15` — **fallback** launch data (5-min cache; free tier returns ~5 upcoming, 0 past)
+- `https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json` — NOAA **space weather** (`loadSpaceWeather`, `SPACEWX`): planetary Kp index → the Analytics "Space Weather" card (Kp gauge + storm level + 24 h sparkline). Card is omitted entirely if the fetch fails.
+- `https://api.open-meteo.com/v1/forecast?...` — real launch-time **weather forecast** (`loadForecast`) for near-term launches (≤16 days); picks the hour nearest NET, writes `l.weather` so the Go Call flips from `Modeled` to `Forecast`. Fetched lazily for the hero + open dossier only.
+- `https://en.wikipedia.org/api/rest_v1/page/summary/<title>` — **operator blurbs** (`loadWiki`, `PROVIDER_WIKI` alias map) in the Companies tab (text extract only; wikimedia thumbnails are on the blocked CDN). Cached 24 h.
+- Day/night at the pad is computed **locally** (`sunAltitude`/`dayNight`, no API) → a day/twilight/night chip in the Go Call.
+- `https://api.wheretheiss.at/v1/satellites/25544` — ISS position, polled every 5 s only while the Globe tab is visible; after 3 failures it switches to a local Keplerian simulation labeled `SIM` and re-probes live every 20 s. Tiangong & Hubble are always simulated (`SATS` config → `simSat`); `renderSats` redraws all craft + trails + orbit tracks + terminator on the same 5 s cadence (and once immediately on globe init, since the poll respects `document.hidden`). Clicking a craft (globe label or HUD row) opens `openSatPanel` (orbit params + live position); `findMyPass` uses `navigator.geolocation` + `nextPass` to estimate the next overhead pass from the simulated ground track.
 
 **Key functions:**
-- `loadData()` — fetches and renders all launch data on page load; stores full array in `window._launches`
-- `normalizeRL(launch, isPast)` — normalizes the RocketLaunch.live API shape into a common object
-- `buildCard(launch, showCountdown)` — returns mission card HTML; each card has `data-launch-id` and an `onclick="openModal(id)"` handler
-- `buildTl(items)` — returns timeline HTML grouped by month
-- `initGlobe()` — lazily initializes the globe on first tab visit
-- `tickAll()` — countdown ticker, runs every 1 s via `setInterval`
-- `orbPos(...)` — simple Keplerian orbital position math for satellite animation
-- `vehicleImg(name, launchId)` — returns a `live.staticflickr.com` URL for the rocket vehicle; matches by substring against `VEHICLE_IMGS`
-- `openModal(id)` — looks up launch by id in `window._launches`, populates and shows the detail modal
-- `closeModal()` — hides the modal; also triggered by Escape key and backdrop click
+- `boot()` — seed paint → live upgrade; `setData()` → `renderAll()`
+- `normalizeLive(raw, isPast)` — single normalization path; `padLookup()` backfills coordinates the API omits from the `PADS` registry. Also extracts **rich fields**: `orbit`, `booster` (from a `tags` entry matching `/^[BS]\d{3,4}$/`), `program` (`Series:` tag), and `weather` (`weather_*` fields). Seed launches carry `orbit`/`payloadInfo`/`customer`/`booster`/`program`/`crew` via `mkSeed` opts (`crew` is `[{name, role, agency}]`, set on the three crewed seed missions — NS-36, Shenzhou-22, Soyuz MS-28). The dossier renders a **Mission Briefing** (see below) + a Payload section + Orbit/Program/Booster rows and, for live launches with weather, a Conditions section.
+- `briefingHTML(l)` + `goCall/modelForecast/histContext/manifestInner/orbitBand` (§12d) — the dossier **Mission Briefing**: a 4-card intel grid rendered between the description and the countdown (`.brief`/`.brief-grid`/`.brief-card`, collapses to one column ≤560px). Cards: **Go Call** (upcoming only) — the number is LL2's **official `l.probability`** when present (badge `official`, green), else a synthesized *estimate* (badge `estimate`). Below it a weather **outlook line** tagged `Forecast` (real Open-Meteo written into `l.weather`), `Reported` (LL2 weather concerns / rocketlaunch.live), or `Modeled` (the deterministic `modelForecast`: pad-latitude climate band + launch-time season/hour + stable `hash01(l.id)` → sky/wind/precip, so the estimate varies per launch — do NOT expect a constant). Reason chips include a `day/twilight/night launch` tag from the local `dayNight` calc. Past launches show a **Result** card instead. **Manifest** — real `l.crew` (LL2 astronauts, name·role·agency) if present, else `derivePayload`/`deriveCustomer` from the mission name (live API supplies no payload/customer, so Starlink→"Starlink v2 Mini batch"·SpaceX, etc. — never "Not disclosed"), plus a Destination=orbit fallback. **Orbit Neighborhood** — curated `ORBIT_INFO` keyed by `orbitBand(l.orbit)` (LEO/SSO/MEO/GEO/SUB): band name, altitude, `≈` traffic count, notables, altitude-scale marker. **In Context** — facts derived live from `S.ordered` (vehicle flight # in tracked set, days since provider's last, booster reflight #, on-this-day matches). No external data or new deps; go-call/orbit figures are estimates/curated and labeled as such.
+- `cdRegister()/cdTickAll()` — countdown engine: one 1 s interval, per-digit diffing (only changed digit spans get text + flip animation), self-pruning registry, imminent/done state callbacks
+- `resolveImg()/armImgFallback()` — centralized image chain: API image → vehicle-matched Flickr photo (`VEHICLE_IMGS`, some pools) → generic; the re-arming `onerror` always nulls itself first
+- `requestGlobe()/initGlobe()` — lazy CDN inject; init failure retries once (transient WebGL context loss), then falls back to the static site list. No throwaway-canvas WebGL pre-probe — the real init inside try/catch is the test
+- `openModal()/renderModal()` — dossier dialog with focus trap, ←/→ prev/next through `S.ordered`, an **interactive canvas pad locator** (`drawLocator`/`renderLocator`/`initLocator`; state on `canvas._loc`), and a Launch Feed pane. The locator is an **offline vector map** — it draws an embedded, RDP-simplified coastline outline (`WORLD_LAND`, 46 rings ~13KB, no map tiles so it survives `file://`'s null origin) plus graticule, the target pad crosshair, and sibling `PADS` dots. Supports drag-pan, wheel/＋－ zoom-toward-cursor, hover lat/lon readout (`.loc-read`), and ◎/double-click recenter. A fresh dossier render makes a fresh map; re-calling `drawLocator` with the same pad (e.g. theme toggle) preserves the current pan/zoom. `WORLD_LAND` was generated by `tools/simplify-coastline.js` from Natural Earth `ne_110m_land` (RDP tolerance/min-area at the top of that script) — regenerate there if you need finer detail.
+- `resolveFeed()/feedSectionHTML()/playFeedInline()/openPipFor()` — the dossier's Launch Feed: a YouTube webcast (upcoming) or replay (past) player. Source priority: the launch's real API `youtube_vidid` → a curated per-vehicle archive clip (`VEHICLE_CLIPS`, ordered most-specific-first like `VEHICLE_IMGS`, every id verified embeddable from an official channel). Posters stay on the Flickr CDN. Playing inline then closing the dossier hands the player off to a floating **PIP** (`#pip`, bottom-right, persists until closed); "⧉ Watch in PIP" / "⇱ Dock Feed Here" move it between the two.
+- `openPalette()/palSearch()` — "/" or Cmd/Ctrl-K command palette, fuzzy subsequence scoring over launches/providers/pads
+- `toggleWatch()/checkReminders()/toast()` — watchlist starring (persisted in `localStorage` key `mc2-watch`), a ★ filter chip sharing `S.filters.watch`, and mission-alert toasts (`#toasts`, bottom-left). `checkReminders` runs each countdown tick (before the hidden-guard so it fires when backgrounded) and alerts watched upcoming launches at T-24h/T-1h/T-10m/liftoff; `remFired` de-dupes, `seedRemindersFor` suppresses already-passed milestones on load/star. Browser `Notification` is best-effort (may be denied, esp. file://); the toast is the reliable channel.
+- `downloadICS()` — "＋ Add to Calendar" in the dossier generates a VCALENDAR/VEVENT (with a T-1h VALARM) as a Blob and downloads it client-side. No external dependency; works from file://.
+- `openClock()/renderClock()/tickClock()` — **Mission Clock** full-screen focus mode (`#clock`), opened from the hero or dossier. `clockPhase(l)` picks: `countdown` (giant `cd-clock` countdown) → `flight` (synthetic ascent telemetry: `fmtTplus` T+ timer, `ascentAlt`/`ascentVel` climb, an SVG altitude curve, and `ASCENT_EVENTS` staging timeline) → `complete` (outcome). `tickClock` is driven by `cdTickAll`; on a phase change it re-renders. The clock scopes the **dark palette locally** (`.clock-veil { --bg…; color: var(--text) }`) so it's always the dark console even in light theme — note `color` must be re-declared or it inherits `body`'s already-computed value. It is **deep-linkable** (`#clock=<id>`), toggles real browser **Fullscreen** (`toggleClockFullscreen`), and has muteable **WebAudio callouts** (`blip()`, persisted `mc2-clock-audio`, default off) that fire once per staging event during flight.
+- `writeHash()/readHash()` — **deep-linking** (§16b): nav state ↔ URL hash (`#tab=&provider=&status=&watch=&launch=`). `writeHash` uses `history.replaceState` (no `hashchange`, no loop) and is called from `switchTab`/`setFilter`/`toggleWatchFilter`/`openModal`/`closeModal`/clear-filters; `readHash` runs on load + `hashchange`. A launch id not yet in the dataset is held in `hashPendingLaunch` and resolved after the live upgrade.
+- `toggleTz()` + `loadAlertPrefs()`/`renderAlertDialog()` + `openSheet()`/`closeSheet()` — **polish** (§16c): a Local/UTC NET display toggle (`S.tz`, persisted `mc2-tz`; `fmtDate`/`fmtClock` honor it via `tzName()`), an alert-settings sheet (`S.alerts`, persisted `mc2-alerts`; `checkReminders` respects enabled + per-milestone mins), and a generic focus-trapped sheet-dialog manager shared by the alerts panel and the `?` keyboard-shortcuts overlay.
 
-**CSS design tokens** are defined as CSS variables on `:root` (dark space theme, cyan accent `#22d3ee`). Font families: Oxanium (`--fd`), JetBrains Mono (`--fm`), DM Sans (`--fu`).
+**State** lives in one store `S` (launches, filters, sort, tlRange, activeTab, watch, tz, alerts…). Filters are shared: Missions chips, Timeline legend, and Companies clicks all write `S.filters`. All interaction is delegated through one document-level click handler on `data-*` attributes plus a keyboard handler (clock > palette > modal > sheet > global priority).
+
+**Theming:** design tokens on `:root`, light theme via `[data-theme="light"]` overrides; persisted in `localStorage` (`mc2-theme`), initial value from `prefers-color-scheme`. The starfield canvas is reused in light mode via `filter: invert()`. `prefers-reduced-motion` statically renders the starfield and disables non-essential animation. **localStorage keys**: `mc2-theme`, `mc2-watch`, `mc2-tz`, `mc2-alerts`, `mc2-clock-audio`. **sessionStorage cache** (`cacheGet(k, ttl)`): `mc2-up`/`mc2-past` (rocketlaunch.live, 5 min), `mc2-ll2up`/`mc2-ll2past` (LL2, 30 min), `mc2-swkp` (space weather, 30 min), `mc2-fc-<launchId>` (forecast, 30 min), `mc2-wiki-<title>` (24 h).
 
 ## Image CDN constraint
 
-All rocket images must use `live.staticflickr.com` URLs. Wikimedia (`upload.wikimedia.org`) and NASA CDN (`images-assets.nasa.gov`) are blocked when the app is opened via `file://`. All `<img>` tags use `loading="eager"` — `loading="lazy"` is broken on `file://` because `IntersectionObserver` never fires. The `onerror` handler always sets `this.onerror=null` first to prevent infinite fallback loops.
+All rocket images must use `live.staticflickr.com` URLs. Wikimedia (`upload.wikimedia.org`) and NASA CDN (`images-assets.nasa.gov`) are blocked when the app is opened via `file://`. All `<img>` tags use `loading="eager"` — `loading="lazy"` is broken on `file://` because the lazy-load `IntersectionObserver` never fires (IO for scroll-reveal of non-image elements works fine). The `onerror` handler always sets `this.onerror=null` first to prevent infinite fallback loops; the chain is finite and re-arms one link at a time via `data-fb`.
 
-Flickr full-size URLs follow the pattern `https://live.staticflickr.com/{server}/{photo_id}_{secret}_b.jpg`. The `_b` suffix is the 1024px size; omitting it gives a smaller default.
+Flickr full-size URLs follow the pattern `https://live.staticflickr.com/{server}/{photo_id}_{secret}_b.jpg`. The `_b` suffix is the 1024px size; omitting it gives a smaller default. Every URL in `VEHICLE_IMGS` was verified live (HTTP 200, image/jpeg) — do not add unverified Flickr IDs; they 404. Same rule for `VEHICLE_CLIPS` YouTube ids: each was verified via oEmbed + no embedding restriction.
+
+## YouTube embedding: file:// vs http
+
+YouTube iframes reject a **null origin** with "Error 153 · Video player configuration error" — they will NOT play when the page is opened from `file://` (verified: same clip that errors from `file://` plays fine from `http://localhost`). Same constraint family as the Flickr-only image rule. The Launch Feed adapts via `CAN_EMBED = location.protocol === 'http:' || 'https:'`:
+- **Served over http(s)** (local server, or hosted): full inline embed (`youtube-nocookie.com/embed/...?autoplay=1`) + floating PIP.
+- **Opened from file://**: no iframe is ever created; the poster and action button become launch-out links (`youtube.com/watch?v=...`, new tab). `playFeedInline`/`openPipFor` also short-circuit to `window.open` if somehow reached.
+
+The Escape key can be swallowed by a focused, playing YouTube iframe (it never reaches the document handler), so the modal→PIP handoff is guaranteed only via the Close button / backdrop, not Escape — acceptable since those are the primary close affordances.
+
+## Layout gotchas (learned the hard way)
+
+- An in-flow `<img>` with `height:100%` transfers its intrinsic aspect ratio into grid/flex min-content sizing and can blow out grid tracks on narrow screens — card/modal hero images are absolutely positioned inside their fixed-height wrappers for this reason.
+- `.crow`-style flex rows (`dt` + nowrap `dd`) need `flex:1; min-width:0` on the `dd`, or the flex container's intrinsic min-content forces card grids wider than 360 px viewports.
+- Grid gap-as-border uses `gap:1px` + per-card `box-shadow: 0 0 0 1px var(--border)` (container background stays transparent) so unfilled cells don't show as solid rectangles.
+
+## QA / testing
+
+Drive it with Playwright via `file://` (the MCP `browser_navigate` tool blocks `file:`, use `browser_run_code_unsafe` with `page.goto`). Offline path: `page.route('**/*', abort non-file)` + reload → expect `SAMPLE DATA` badge, hero IMMINENT at T-42 min (first seed offset), zero script errors (network `net::ERR_FAILED` entries are unavoidable). Force LIFTOFF: make the first `SEED_UPCOMING` offset negative (e.g. `-5`). Force IMMINENT: any offset < 60.

@@ -1,0 +1,4 @@
+.playwright-mcp/
+.remember/
+*.log
+scratchpad/

@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Mission Control</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Oxanium:wght@300;400;600;700;800&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+    :root {
+      --bg:      #020508;
+      --surf:    #050b14;
+      --surf2:   #091220;
+      --surf3:   #0e1a2d;
+      --border:  #122030;
+      --border2: #1c3048;
+      --accent:  #22d3ee;
+      --accent-d:#0891b2;
+      --orange:  #f97316;
+      --text:    #daeaf7;
+      --text2:   #6898b8;
+      --dim:     #365570;
+      --green:   #34d399;
+      --red:     #f87171;
+      --amber:   #fbbf24;
+      --fd: 'Oxanium', sans-serif;
+      --fm: 'JetBrains Mono', monospace;
+      --fu: 'DM Sans', sans-serif;
+    }
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: var(--fu);
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    /* Subtle cyan grid overlay */
+    body::before {
+      content: '';
+      position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background-image:
+        linear-gradient(rgba(34,211,238,0.028) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(34,211,238,0.028) 1px, transparent 1px);
+      background-size: 52px 52px;
+      mask-image: radial-gradient(ellipse 90% 70% at 50% 30%, black 20%, transparent 100%);
+      -webkit-mask-image: radial-gradient(ellipse 90% 70% at 50% 30%, black 20%, transparent 100%);
+    }
+
+    #sf { position: fixed; inset: 0; z-index: 0; pointer-events: none; opacity: 0.65; }
+
+    /* ── NAV ─────────────────────────────────────────────── */
+    nav {
+      position: sticky; top: 0; z-index: 200;
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 0 36px; height: 58px;
+      background: rgba(2,5,8,0.88);
+      backdrop-filter: blur(20px) saturate(160%);
+      -webkit-backdrop-filter: blur(20px) saturate(160%);
+      border-bottom: 1px solid var(--border);
+    }
+
+    .logo {
+      font-family: var(--fd);
+      font-size: 0.82rem;
+      font-weight: 700;
+      letter-spacing: 0.3em;
+      color: var(--text);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-transform: uppercase;
+    }
+
+    /* Logo mark: small square border with cyan dot via ::after */
+    .logo-mark {
+      width: 20px; height: 20px;
+      border: 1.5px solid rgba(34,211,238,0.45);
+      border-radius: 3px;
+      display: flex; align-items: center; justify-content: center;
+      flex-shrink: 0;
+    }
+    .logo-mark::after {
+      content: '';
+      width: 7px; height: 7px;
+      background: var(--accent);
+      border-radius: 50%;
+      box-shadow: 0 0 10px var(--accent), 0 0 20px rgba(34,211,238,0.3);
+    }
+
+    .nav-tabs { display: flex; height: 100%; }
+
+    .tab-btn {
+      height: 100%;
+      padding: 0 22px;
+      border: none;
+      border-bottom: 2px solid transparent;
+      background: transparent;
+      color: var(--dim);
+      cursor: pointer;
+      font-family: var(--fd);
+      font-size: 0.66rem;
+      font-weight: 600;
+      letter-spacing: 0.2em;
+      text-transform: uppercase;
+      transition: color 0.18s, border-color 0.18s;
+    }
+    .tab-btn.active  { color: var(--accent); border-bottom-color: var(--accent); }
+    .tab-btn:hover:not(.active) { color: var(--text2); }
+
+    .live-badge {
+      display: flex; align-items: center; gap: 8px;
+      font-family: var(--fm); font-size: 0.6rem; letter-spacing: 0.16em;
+      color: var(--green);
+    }
+
+    .live-dot {
+      width: 5px; height: 5px;
+      background: var(--green); border-radius: 50%;
+      box-shadow: 0 0 7px var(--green);
+      animation: blink 2.5s ease-in-out infinite;
+    }
+    @keyframes blink { 0%,100%{opacity:1;box-shadow:0 0 7px var(--green)} 50%{opacity:0.25;box-shadow:none} }
+
+    /* ── LAYOUT ──────────────────────────────────────────── */
+    main {
+      position: relative; z-index: 2;
+      max-width: 1440px; margin: 0 auto;
+      padding: 36px 32px 80px;
+    }
+
+    .section { display: none; }
+    .section.active { display: block; animation: fadein 0.3s ease; }
+    @keyframes fadein { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:translateY(0)} }
+
+    /* ── SHARED ──────────────────────────────────────────── */
+    .loader { display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:300px;gap:16px; }
+    .spinner { width:40px;height:40px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin 0.8s linear infinite; }
+    @keyframes spin { to{transform:rotate(360deg)} }
+    .loader-text { font-family:var(--fm);font-size:0.65rem;letter-spacing:0.15em;color:var(--dim); }
+    .error-box { background:rgba(239,68,68,0.07);border:1px solid rgba(239,68,68,0.2);border-radius:6px;padding:20px;color:var(--red);text-align:center;font-size:0.85rem;line-height:1.7; }
+
+    /* Section labels: cyan accent, gradient fade on ::after line */
+    .sec-label {
+      display: flex; align-items: center; gap: 12px;
+      font-family: var(--fd); font-size: 0.68rem; font-weight: 700;
+      letter-spacing: 0.28em; color: var(--accent); text-transform: uppercase;
+      margin-bottom: 20px;
+    }
+    .sec-label::before { content:''; width:3px; height:14px; background:var(--accent); flex-shrink:0; }
+    .sec-label::after  { content:''; flex:1; height:1px; background:linear-gradient(to right, var(--border2), transparent); }
+
+    /* ── STATS ───────────────────────────────────────────── */
+    .stats-row {
+      display: grid; grid-template-columns: repeat(4,1fr);
+      gap: 1px;
+      background: var(--border);
+      border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
+      margin-bottom: 44px;
+    }
+    .stat-card {
+      background: var(--surf);
+      padding: 28px 24px;
+    }
+    .stat-num {
+      font-family: var(--fd); font-size: 4rem; font-weight: 800;
+      line-height: 1; color: var(--text); margin-bottom: 6px;
+      letter-spacing: -0.02em;
+    }
+    .stat-lbl { font-family: var(--fm); font-size: 0.6rem; letter-spacing: 0.14em; color: var(--dim); text-transform: uppercase; }
+
+    /* ── MISSION CARDS ───────────────────────────────────── */
+    .missions-grid {
+      display: grid; grid-template-columns: repeat(auto-fill,minmax(340px,1fr));
+      gap: 1px; background: var(--border);
+      border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
+    }
+
+    .mission-card {
+      background: var(--surf);
+      transition: background 0.15s;
+      display: flex; flex-direction: column;
+    }
+    .mission-card:hover { background: var(--surf2); }
+
+    .card-img-wrap {
+      position: relative; width: 100%; height: 220px; overflow: hidden;
+      flex-shrink: 0;
+    }
+    .card-img {
+      width: 100%; height: 100%; object-fit: cover; display: block;
+      transition: transform 0.5s ease, filter 0.5s ease;
+      filter: brightness(0.8) saturate(0.8);
+    }
+    .mission-card:hover .card-img {
+      transform: scale(1.04);
+      filter: brightness(0.95) saturate(1.05);
+    }
+
+    /* Deeper gradient overlay using surf color */
+    .card-img-grad {
+      position: absolute; inset: 0;
+      background: linear-gradient(to bottom, transparent 30%, rgba(5,11,20,0.96) 100%);
+    }
+
+    /* CSS-only placeholder: subtle hex char, no emoji */
+    .card-img-placeholder {
+      width: 100%; height: 220px;
+      background: linear-gradient(135deg, var(--surf2) 0%, var(--surf3) 100%);
+      display: flex; align-items: center; justify-content: center;
+    }
+    .card-img-placeholder::before {
+      content: '\2B22'; /* hexagon */
+      font-size: 4rem;
+      color: var(--border2);
+      opacity: 0.35;
+      line-height: 1;
+    }
+
+    .card-badge {
+      position: absolute; top: 12px; right: 12px;
+      padding: 4px 10px; border-radius: 4px;
+      font-family: var(--fd); font-size: 0.62rem; font-weight: 700;
+      letter-spacing: 0.1em; text-transform: uppercase;
+    }
+    .badge-go      { background:var(--green); color:#000; }
+    .badge-tbd     { background:var(--surf3); color:var(--text2); border:1px solid var(--border2); }
+    .badge-hold    { background:var(--amber); color:#000; }
+    .badge-success { background:var(--surf3); color:var(--dim); border:1px solid var(--border); }
+    .badge-failure { background:var(--red); color:#fff; }
+    .badge-active  { background:var(--green); color:#000; }
+
+    .card-vehicle-tag {
+      position: absolute; bottom: 10px; left: 12px;
+      font-family: var(--fm); font-size: 0.62rem; color: rgba(255,255,255,0.65);
+      letter-spacing: 0.06em;
+    }
+
+    .card-body { padding: 18px 20px; flex: 1; display: flex; flex-direction: column; gap: 12px; }
+
+    .card-title {
+      font-family: var(--fd); font-size: 1.2rem; font-weight: 700;
+      letter-spacing: 0.04em; line-height: 1.15; color: var(--text);
+    }
+    /* card-provider in cyan/accent color */
+    .card-provider { font-size: 0.82rem; color: var(--accent); margin-top: -8px; opacity: 0.85; }
+
+    .card-desc {
+      font-size: 0.8rem; color: var(--dim); line-height: 1.6;
+      display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+    }
+
+    .card-data { display: flex; flex-direction: column; gap: 5px; }
+    .data-row { display: flex; align-items: baseline; gap: 10px; }
+    .data-key { font-family: var(--fm); font-size: 0.6rem; letter-spacing: 0.12em; color: var(--dim); text-transform: uppercase; min-width: 52px; flex-shrink: 0; }
+    .data-val { font-family: var(--fm); font-size: 0.75rem; color: var(--text2); }
+
+    /* ── COUNTDOWN ───────────────────────────────────────── */
+    .countdown-wrap {
+      margin-top: auto;
+      border-top: 1px solid var(--border);
+      padding-top: 14px;
+    }
+
+    .cd-label { font-family: var(--fm); font-size: 0.55rem; letter-spacing: 0.22em; color: var(--dim); margin-bottom: 8px; }
+
+    .cd-inner { display: flex; align-items: flex-start; gap: 2px; }
+
+    .cd-unit { display: flex; flex-direction: column; align-items: center; }
+
+    /* Countdown numbers: cyan with text-shadow glow */
+    .cd-num {
+      font-family: var(--fm); font-size: 2rem; font-weight: 500;
+      font-variant-numeric: tabular-nums; color: var(--accent);
+      line-height: 1; letter-spacing: -0.02em;
+      display: block;
+      text-shadow: 0 0 18px rgba(34,211,238,0.5), 0 0 40px rgba(34,211,238,0.18);
+    }
+    .cd-num.flip { animation: cdflip 0.28s ease; }
+    @keyframes cdflip {
+      0%  { transform: rotateX(0);    opacity: 1; }
+      40% { transform: rotateX(-85deg); opacity: 0; }
+      60% { transform: rotateX(85deg);  opacity: 0; }
+      100%{ transform: rotateX(0);    opacity: 1; }
+    }
+    .cd-sub { font-family: var(--fm); font-size: 0.5rem; letter-spacing: 0.12em; color: var(--dim); text-transform: uppercase; margin-top: 3px; }
+    .cd-sep { font-family: var(--fm); font-size: 1.8rem; color: var(--border2); line-height: 1.1; padding: 0 1px; margin-top: 1px; }
+
+    /* ── TIMELINE ────────────────────────────────────────── */
+    .tl-controls { display:flex; gap:8px; margin-bottom:20px; }
+    .tl-filter {
+      padding: 6px 16px; border-radius: 4px;
+      border: 1px solid var(--border); background: transparent;
+      color: var(--dim); cursor: pointer;
+      font-family: var(--fd); font-size: 0.65rem; font-weight: 700;
+      letter-spacing: 0.1em; text-transform: uppercase; transition: all 0.15s;
+    }
+    .tl-filter.active { background: rgba(8,145,178,0.18); border-color: var(--accent); color: var(--accent); }
+    .tl-filter:hover:not(.active) { color: var(--text); border-color: var(--border2); }
+
+    .tl-table { width: 100%; border-collapse: collapse; }
+
+    .tl-month-header { padding: 20px 0 8px; }
+    .tl-month-label {
+      font-family: var(--fd); font-size: 0.65rem; font-weight: 700;
+      letter-spacing: 0.24em; color: var(--accent); text-transform: uppercase;
+      display: flex; align-items: center; gap: 12px;
+    }
+    .tl-month-label::after { content:''; flex:1; height:1px; background:linear-gradient(to right, var(--border2), transparent); }
+
+    .tl-row {
+      display: grid;
+      grid-template-columns: 80px 1fr 200px 160px 90px;
+      align-items: center; gap: 16px;
+      padding: 13px 10px;
+      border-bottom: 1px solid var(--border);
+      border-left: 2px solid transparent;
+      opacity: 0; transform: translateY(6px);
+      transition: opacity 0.35s ease, transform 0.35s ease, background 0.15s, border-left-color 0.18s;
+    }
+    .tl-row.visible { opacity: 1; transform: translateY(0); }
+    .tl-row.past.visible { opacity: 0.5; }
+    .tl-row:hover { background: var(--surf2); border-left-color: var(--accent); }
+
+    .tl-date {
+      font-family: var(--fm); font-size: 0.95rem; font-weight: 500;
+      color: var(--text); line-height: 1.1;
+    }
+    .tl-date-day { font-family: var(--fm); font-size: 0.6rem; color: var(--dim); letter-spacing: 0.08em; }
+
+    .tl-name { font-family: var(--fd); font-size: 1.05rem; font-weight: 700; color: var(--text); letter-spacing: 0.02em; }
+    .tl-sub  { font-family: var(--fm); font-size: 0.68rem; color: var(--dim); margin-top: 2px; }
+
+    .tl-vehicle { font-family: var(--fm); font-size: 0.72rem; color: var(--text2); }
+    .tl-pad     { font-family: var(--fm); font-size: 0.7rem; color: var(--dim); }
+
+    .tl-badge {
+      display: inline-block; padding: 3px 10px; border-radius: 4px;
+      font-family: var(--fd); font-size: 0.6rem; font-weight: 700;
+      letter-spacing: 0.08em; text-transform: uppercase;
+    }
+
+    /* ── COMPANIES ────────────────────────────────────────── */
+    .companies-grid {
+      display: grid; grid-template-columns: repeat(auto-fill,minmax(320px,1fr));
+      gap: 1px; background: var(--border);
+      border: 1px solid var(--border); border-radius: 8px; overflow: hidden;
+    }
+    .company-card {
+      background: var(--surf); padding: 24px;
+      transition: background 0.15s;
+      position: relative;
+      overflow: hidden;
+    }
+    /* Top border reveal on hover: 1.5px cyan gradient line */
+    .company-card::before {
+      content: '';
+      position: absolute; top: 0; left: 0; right: 0;
+      height: 1.5px;
+      background: linear-gradient(90deg, transparent, var(--accent), transparent);
+      opacity: 0;
+      transition: opacity 0.22s;
+    }
+    .company-card:hover { background: var(--surf2); }
+    .company-card:hover::before { opacity: 1; }
+
+    .co-header { display:flex; align-items:flex-start; justify-content:space-between; margin-bottom:12px; }
+    .co-name { font-family:var(--fd); font-size:1.5rem; font-weight:800; letter-spacing:0.04em; color:var(--text); }
+    .co-country { font-family:var(--fm); font-size:0.65rem; color:var(--dim); margin-top:2px; }
+    .co-focus { font-family:var(--fm); font-size:0.6rem; letter-spacing:0.1em; color:var(--accent); text-transform:uppercase; padding:4px 10px; border:1px solid var(--accent-d); border-radius:4px; white-space:nowrap; }
+    .co-desc { font-size:0.83rem; color:var(--dim); line-height:1.65; margin-bottom:16px; }
+    .co-stats { display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:var(--border); border:1px solid var(--border); border-radius:4px; overflow:hidden; }
+    .co-stat { background:var(--surf3); padding:10px 12px; text-align:center; }
+    .co-stat-num { font-family:var(--fd); font-size:1.4rem; font-weight:800; color:var(--text); }
+    .co-stat-lbl { font-family:var(--fm); font-size:0.56rem; letter-spacing:0.1em; color:var(--dim); text-transform:uppercase; margin-top:2px; }
+    .co-tags { display:flex; flex-wrap:wrap; gap:6px; margin-top:14px; }
+    .co-tag { font-family:var(--fm); font-size:0.62rem; color:var(--dim); border:1px solid var(--border); border-radius:3px; padding:2px 8px; }
+
+    @media (max-width:900px) { .stats-row{grid-template-columns:repeat(2,1fr)} }
+    @media (max-width:640px) { nav{padding:0 16px} main{padding:24px 16px} .tl-row{grid-template-columns:70px 1fr 90px;} .tl-vehicle,.tl-pad{display:none} }
+
+    /* ── LAUNCH DETAIL MODAL ─────────────────────────────────── */
+    #launch-modal {
+      position: fixed; inset: 0; z-index: 1000;
+      background: rgba(2,5,8,0.82);
+      backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+      display: flex; align-items: center; justify-content: center;
+      padding: 24px;
+      opacity: 0; pointer-events: none;
+      transition: opacity 0.2s ease;
+    }
+    #launch-modal.open { opacity: 1; pointer-events: all; }
+    .modal-box {
+      background: var(--surf);
+      border: 1px solid rgba(34,211,238,0.18);
+      border-radius: 12px;
+      width: 100%; max-width: 640px;
+      overflow: hidden;
+      box-shadow: 0 0 50px rgba(34,211,238,0.1), 0 24px 64px rgba(0,0,0,0.7);
+      transform: scale(0.95);
+      transition: transform 0.22s ease;
+      max-height: 90vh; overflow-y: auto;
+    }
+    #launch-modal.open .modal-box { transform: scale(1); }
+    .modal-hero { position: relative; height: 220px; overflow: hidden; flex-shrink: 0; }
+    .modal-hero img { width: 100%; height: 100%; object-fit: cover; display: block; }
+    .modal-hero-grad {
+      position: absolute; inset: 0;
+      background: linear-gradient(to bottom, rgba(5,11,20,0.2) 0%, var(--surf) 100%);
+    }
+    .modal-hero-meta { position: absolute; bottom: 16px; left: 20px; right: 52px; }
+    .modal-launch-name {
+      font-family: var(--fd); font-size: 1.5rem; font-weight: 800;
+      letter-spacing: 0.02em; color: var(--text); line-height: 1.15;
+    }
+    .modal-provider-name { font-family: var(--fu); font-size: 0.82rem; color: var(--accent); margin-top: 3px; }
+    .modal-close {
+      position: absolute; top: 14px; right: 14px; z-index: 2;
+      background: rgba(2,5,8,0.65); border: 1px solid var(--border2);
+      color: var(--dim); font-family: var(--fm); font-size: 0.65rem;
+      letter-spacing: 0.1em; padding: 5px 10px; border-radius: 4px;
+      cursor: pointer; transition: color 0.15s, border-color 0.15s;
+    }
+    .modal-close:hover { color: var(--text); border-color: var(--accent); }
+    .modal-body { padding: 18px 20px 26px; }
+    .modal-desc {
+      font-family: var(--fu); font-size: 0.8rem; color: var(--dim);
+      line-height: 1.65; margin-bottom: 18px;
+      display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical;
+      overflow: hidden;
+    }
+    .modal-grid { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 20px; }
+    .modal-sec-label {
+      font-family: var(--fm); font-size: 0.52rem; letter-spacing: 0.2em;
+      color: var(--accent); text-transform: uppercase;
+      padding-bottom: 7px; border-bottom: 1px solid var(--border2); margin-bottom: 10px;
+    }
+    .modal-row { display: flex; justify-content: space-between; gap: 8px; margin-bottom: 6px; }
+    .modal-key { font-family: var(--fm); font-size: 0.56rem; letter-spacing: 0.08em; color: var(--dim); text-transform: uppercase; flex-shrink: 0; }
+    .modal-val { font-family: var(--fm); font-size: 0.6rem; color: var(--text2); text-align: right; word-break: break-word; }
+    .mission-card { cursor: pointer; }
+    @media (max-width:560px) { .modal-grid { grid-template-columns: 1fr 1fr; } }
+  </style>
+</head>
+<body>
+
+<div id="launch-modal" onclick="if(event.target===this)closeModal()">
+  <div class="modal-box">
+    <button class="modal-close" onclick="closeModal()">✕ CLOSE</button>
+    <div class="modal-hero">
+      <img id="modal-img" src="" loading="eager" alt="">
+      <div class="modal-hero-grad"></div>
+      <div class="modal-hero-meta">
+        <div id="modal-status-badge" class="card-badge" style="margin-bottom:8px;display:inline-block"></div>
+        <div id="modal-name" class="modal-launch-name"></div>
+        <div id="modal-provider" class="modal-provider-name"></div>
+      </div>
+    </div>
+    <div class="modal-body">
+      <div id="modal-desc" class="modal-desc"></div>
+      <div class="modal-grid">
+        <div>
+          <div class="modal-sec-label">Mission</div>
+          <div class="modal-row"><span class="modal-key">NET</span><span id="modal-net" class="modal-val"></span></div>
+          <div class="modal-row"><span class="modal-key">WINDOW</span><span id="modal-window" class="modal-val"></span></div>
+          <div class="modal-row"><span class="modal-key">STATUS</span><span id="modal-status-txt" class="modal-val"></span></div>
+        </div>
+        <div>
+          <div class="modal-sec-label">Rocket</div>
+          <div class="modal-row"><span class="modal-key">VEHICLE</span><span id="modal-vehicle" class="modal-val"></span></div>
+          <div class="modal-row"><span class="modal-key">PROVIDER</span><span id="modal-org" class="modal-val"></span></div>
+        </div>
+        <div>
+          <div class="modal-sec-label">Launchpad</div>
+          <div class="modal-row"><span class="modal-key">PAD</span><span id="modal-pad" class="modal-val"></span></div>
+          <div class="modal-row"><span class="modal-key">LOCATION</span><span id="modal-loc" class="modal-val"></span></div>
+          <div class="modal-row"><span class="modal-key">COORDS</span><span id="modal-coords" class="modal-val"></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<canvas id="sf"></canvas>
+
+<nav>
+  <div class="logo">
+    <div class="logo-mark"></div>
+    <span>MISSION CONTROL</span>
+  </div>
+  <div class="nav-tabs">
+    <button class="tab-btn active" onclick="showTab('missions',this)">Missions</button>
+    <button class="tab-btn" onclick="showTab('timeline-section',this)">Timeline</button>
+    <button class="tab-btn" onclick="showTab('companies',this)">Companies</button>
+  </div>
+  <div class="live-badge"><div class="live-dot"></div>LIVE</div>
+</nav>
+
+<main>
+
+  <!-- MISSIONS -->
+  <div class="section active" id="missions">
+    <div class="stats-row">
+      <div class="stat-card"><div class="stat-num" id="stat-upcoming">—</div><div class="stat-lbl">Upcoming Launches</div></div>
+      <div class="stat-card"><div class="stat-num" id="stat-recent">—</div><div class="stat-lbl">Recent Launches</div></div>
+      <div class="stat-card"><div class="stat-num" id="stat-agencies">—</div><div class="stat-lbl">Active Agencies</div></div>
+      <div class="stat-card"><div class="stat-num" id="stat-year">—</div><div class="stat-lbl">This Year</div></div>
+    </div>
+
+    <div class="sec-label">Upcoming Launches</div>
+    <div id="upcoming-grid" class="missions-grid">
+      <div class="loader" style="grid-column:1/-1"><div class="spinner"></div><div class="loader-text">FETCHING LIVE DATA</div></div>
+    </div>
+
+    <div class="sec-label" style="margin-top:48px">Recent Launches</div>
+    <div id="recent-grid" class="missions-grid">
+      <div class="loader" style="grid-column:1/-1"><div class="spinner"></div><div class="loader-text">LOADING</div></div>
+    </div>
+  </div>
+
+  <!-- TIMELINE -->
+  <div class="section" id="timeline-section">
+    <div class="sec-label">Launch Schedule</div>
+    <div class="tl-controls">
+      <button class="tl-filter active" onclick="filterTl('all',this)">All</button>
+      <button class="tl-filter" onclick="filterTl('upcoming',this)">Upcoming</button>
+      <button class="tl-filter" onclick="filterTl('past',this)">Past</button>
+    </div>
+    <div id="tl-container">
+      <div class="loader"><div class="spinner"></div><div class="loader-text">BUILDING SCHEDULE</div></div>
+    </div>
+  </div>
+
+  <!-- COMPANIES -->
+  <div class="section" id="companies">
+    <div class="sec-label">Space Industry Leaders</div>
+    <div class="companies-grid" id="companies-grid"></div>
+  </div>
+
+</main>
+
+<script>
+
+// ── Starfield (static, draw-once) ─────────────────────────────────────────
+(function(){
+  const c=document.getElementById('sf'), ctx=c.getContext('2d');
+  c.width=window.innerWidth; c.height=window.innerHeight;
+  for(let i=0;i<200;i++){
+    const x=Math.random()*c.width, y=Math.random()*c.height;
+    const r=Math.random()*0.8+0.2, a=Math.random()*0.35+0.1;
+    ctx.beginPath(); ctx.arc(x,y,r,0,Math.PI*2);
+    ctx.fillStyle=`rgba(200,220,240,${a})`; ctx.fill();
+  }
+})();
+
+// ── Vehicle images — Flickr CDN (live.staticflickr.com), confirmed working from file:// context
+// Falcon 9 uses a pool so back-to-back launches show different mission photos
+const FALLBACK_ROCKET_IMG='https://live.staticflickr.com/8078/28351782813_5944e4516a_b.jpg';
+
+const VEHICLE_IMGS = [
+  {m:'starship',     u:'https://live.staticflickr.com/65535/52822391709_e095d5039f_b.jpg'},
+  {m:'falcon heavy', u:'https://live.staticflickr.com/4650/40126461851_ec2bb0436b_b.jpg'},
+  {m:'falcon 9',     u:'https://live.staticflickr.com/8078/28351782813_5944e4516a_b.jpg'},
+  {m:'new glenn',    u:'https://live.staticflickr.com/65535/55224441716_cca04b196c_b.jpg'},
+  {m:'electron',     u:'https://live.staticflickr.com/65535/55223873488_9875b40d00_b.jpg'},
+  {m:'long march',   u:'https://live.staticflickr.com/2815/34216657555_2f52b7ba7d_b.jpg'},
+  {m:'atlas v',      u:'https://live.staticflickr.com/65535/49651597656_88bd60bd2a_b.jpg'},
+  {m:'ariane',       u:'https://live.staticflickr.com/65535/51816952888_6d233ac4a1_b.jpg'},
+];
+
+function vehicleImg(name, launchId){
+  if(!name) return FALLBACK_ROCKET_IMG;
+  const lower=name.toLowerCase();
+  const hit=VEHICLE_IMGS.find(v=>lower.includes(v.m));
+  if(!hit) return FALLBACK_ROCKET_IMG;
+  if(hit.pool){
+    const idx=Math.abs(parseInt(launchId||'0',10))%hit.pool.length;
+    return hit.pool[isNaN(idx)?0:idx];
+  }
+  return hit.u;
+}
+
+// ── Config / API ──────────────────────────────────────────────────────────
+const RL='https://fdo.rocketlaunch.live/json';
+const CACHE_TTL=5*60*1000;
+
+function normalizeRL(launch, isPast){
+  const date=launch.t0||launch.win_open;
+  let abbrev,name;
+  if(isPast){
+    if(launch.result===1)     {abbrev='Success';name='Success';}
+    else if(launch.result===-1){abbrev='Failure';name='Failure';}
+    else if(launch.result===0) {abbrev='Go';name='In Progress';}
+    else                       {abbrev='TBD';name='Unknown';}
+  } else {
+    abbrev=launch.t0?'Go':'TBD'; name=launch.t0?'Go for Launch':'TBD';
+  }
+  return {
+    id:String(launch.id), name:launch.name,
+    status:{abbrev,name},
+    launch_service_provider:{name:launch.provider?.name},
+    rocket:{configuration:{name:launch.vehicle?.name}},
+    pad:{name:launch.pad?.name,latitude:launch.pad?.lat,longitude:launch.pad?.lon,location:{name:launch.pad?.location?.name}},
+    mission:{description:launch.missions?.[0]?.description||launch.mission_description||launch.launch_description||''},
+    image:launch.media?.[0]?.feature_image?.image_url?{thumbnail_url:launch.media[0].feature_image.image_url}:null,
+    net:date, window_start:launch.win_open,
+  };
+}
+
+async function fetchJ(url){const r=await fetch(url);if(!r.ok)throw new Error(`HTTP ${r.status}`);return r.json();}
+function cacheGet(k){try{const{data,ts}=JSON.parse(sessionStorage.getItem(k));return Date.now()-ts<CACHE_TTL?data:null;}catch{return null;}}
+function cacheSet(k,d){try{sessionStorage.setItem(k,JSON.stringify({data:d,ts:Date.now()}));}catch{}}
+
+// ── Countdown ─────────────────────────────────────────────────────────────
+let countdownTargets=[], prevD={};
+function timeTo(d){const diff=d-Date.now();if(diff<=0)return null;const s=Math.floor(diff/1000);return{d:Math.floor(s/86400),h:Math.floor((s%86400)/3600),m:Math.floor((s%3600)/60),s:s%60};}
+function tickAll(){
+  countdownTargets.forEach(({id,date})=>{
+    const el=document.getElementById(id); if(!el)return;
+    const t=timeTo(date);
+    if(!t){el.innerHTML='<span style="font-family:var(--fm);font-size:0.7rem;letter-spacing:0.15em;color:var(--green)">LAUNCHED</span>';return;}
+    const v={d:String(t.d).padStart(2,'0'),h:String(t.h).padStart(2,'0'),m:String(t.m).padStart(2,'0'),s:String(t.s).padStart(2,'0')};
+    ['d','h','m','s'].forEach(f=>{
+      const sp=el.querySelector(`[data-f="${f}"]`); if(!sp)return;
+      const pk=`${id}-${f}`;
+      if(prevD[pk]!==v[f]){sp.textContent=v[f];sp.classList.remove('flip');void sp.offsetWidth;sp.classList.add('flip');prevD[pk]=v[f];}
+    });
+  });
+}
+
+function cdHTML(id){
+  const u=[['d','D'],['h','H'],['m','M'],['s','S']];
+  return `<div class="countdown-wrap"><div class="cd-label">T — MINUS</div><div class="cd-inner" id="${id}">${u.map(([f,l],i)=>`${i?'<div class="cd-sep">:</div>':''}<div class="cd-unit"><span class="cd-num" data-f="${f}">--</span><span class="cd-sub">${l}</span></div>`).join('')}</div></div>`;
+}
+
+// ── Status helpers ────────────────────────────────────────────────────────
+function badgeClass(a){return{Go:'badge-go',TBD:'badge-tbd',TBC:'badge-tbd',Hold:'badge-hold',Success:'badge-success',Failure:'badge-failure','Partial Failure':'badge-failure'}[a]||'badge-tbd';}
+function tlBadgeStyle(a){
+  const m={Go:'background:#22c55e;color:#000',TBD:'background:var(--surf3);color:var(--dim);border:1px solid var(--border2)',Hold:'background:var(--amber);color:#000',Success:'background:var(--surf3);color:var(--dim)',Failure:'background:var(--red);color:#fff'};
+  return m[a]||m.TBD;
+}
+function fmtDate(iso){if(!iso)return'TBD';return new Date(iso).toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit',timeZoneName:'short'});}
+
+// ── Mission card ──────────────────────────────────────────────────────────
+function buildCard(launch, showCountdown){
+  const sa=launch.status?.abbrev||'TBD', sl=launch.status?.name||'TBD';
+  const org=launch.launch_service_provider?.name||'Unknown';
+  const veh=launch.rocket?.configuration?.name||'—';
+  const pad=launch.pad?.name||'—';
+  const loc=launch.pad?.location?.name||'';
+  const desc=launch.mission?.description||'';
+  const net=launch.net?new Date(launch.net):null;
+  const cdId=`cd-${launch.id}`;
+  if(showCountdown&&net) countdownTargets.push({id:cdId,date:net});
+
+  // Image: API mission image → vehicle-specific photo → generic rocket photo
+  const apiImg=launch.image?.thumbnail_url||launch.image?.image_url||'';
+  const vImg=vehicleImg(veh,launch.id);
+  const primaryImg=apiImg||vImg;
+  const fallback=`this.onerror=null; this.src='${FALLBACK_ROCKET_IMG}'`;
+
+  return `
+    <div class="mission-card" data-launch-id="${launch.id}" onclick="openModal('${launch.id}')">
+      <div class="card-img-wrap">
+        <img class="card-img" src="${primaryImg}" loading="eager" onerror="${fallback}"><div class="card-img-grad"></div>
+        <div class="card-badge ${badgeClass(sa)}">${sl}</div>
+        <div class="card-vehicle-tag">${veh}</div>
+      </div>
+      <div class="card-body">
+        <div>
+          <div class="card-title">${launch.name}</div>
+          <div class="card-provider">${org}</div>
+        </div>
+        ${desc?`<div class="card-desc">${desc}</div>`:''}
+        <div class="card-data">
+          <div class="data-row"><span class="data-key">PAD</span><span class="data-val">${pad}${loc?', '+loc:''}</span></div>
+          <div class="data-row"><span class="data-key">NET</span><span class="data-val">${net?fmtDate(net.toISOString()):'TBD'}</span></div>
+        </div>
+        ${showCountdown&&net?cdHTML(cdId):''}
+      </div>
+    </div>`;
+}
+
+// ── Timeline ──────────────────────────────────────────────────────────────
+let allTl=[], tlFilter='all', tlObs;
+const DAYS=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+function buildTl(items){
+  const now=Date.now();
+  const filtered=tlFilter==='upcoming'?items.filter(i=>new Date(i.net||i.window_start)>now)
+                :tlFilter==='past'?items.filter(i=>new Date(i.net||i.window_start)<=now)
+                :items;
+  if(!filtered.length)return'<p style="color:var(--dim);padding:32px;font-family:var(--fm);font-size:0.75rem">NO LAUNCHES TO DISPLAY</p>';
+
+  const groups={};
+  filtered.forEach(l=>{
+    const d=new Date(l.net||l.window_start||Date.now());
+    const key=d.toLocaleDateString('en-US',{month:'long',year:'numeric'});
+    (groups[key]=groups[key]||[]).push({l,d});
+  });
+
+  return Object.entries(groups).map(([month,entries])=>`
+    <div class="tl-month-header"><div class="tl-month-label">${month}</div></div>
+    ${entries.map(({l,d})=>{
+      const past=d<=now;
+      const sa=l.status?.abbrev||'TBD', sl=l.status?.name||'TBD';
+      return `
+        <div class="tl-row${past?' past':''}">
+          <div>
+            <div class="tl-date">${String(d.getDate()).padStart(2,'0')}</div>
+            <div class="tl-date-day">${DAYS[d.getDay()].toUpperCase()} · ${d.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false})}Z</div>
+          </div>
+          <div>
+            <div class="tl-name">${l.name}</div>
+            <div class="tl-sub">${l.launch_service_provider?.name||'—'}</div>
+          </div>
+          <div class="tl-vehicle">${l.rocket?.configuration?.name||'—'}</div>
+          <div class="tl-pad">${l.pad?.location?.name||l.pad?.name||'—'}</div>
+          <div><span class="tl-badge" style="${tlBadgeStyle(sa)}">${sl}</span></div>
+        </div>`;
+    }).join('')}`).join('');
+}
+
+function obsTimeline(){
+  if(tlObs)tlObs.disconnect();
+  tlObs=new IntersectionObserver(entries=>{
+    entries.forEach(e=>{if(e.isIntersecting){e.target.classList.add('visible');tlObs.unobserve(e.target);}});
+  },{threshold:0.05});
+  document.querySelectorAll('.tl-row').forEach(el=>tlObs.observe(el));
+}
+
+function filterTl(f,btn){
+  tlFilter=f;
+  document.querySelectorAll('.tl-filter').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tl-container').innerHTML=buildTl(allTl);
+  requestAnimationFrame(obsTimeline);
+}
+
+// ── Companies ─────────────────────────────────────────────────────────────
+const COMPANIES=[
+  {name:'SpaceX',   country:'USA',   tag:'Reusability',desc:'Developing fully reusable launch vehicles and Starlink broadband. Leading commercial crew transport to the ISS and advancing Starship toward Mars.',    launches:240,missions:18,employees:'13,000+',tags:['Reusability','Crew Transport','Starlink','Mars']},
+  {name:'NASA',     country:'USA',   tag:'Science',    desc:'Leading Artemis lunar return and deep-space exploration via SLS. Operating robotic science missions across the solar system.',                          launches:8,  missions:42,employees:'18,000', tags:['Artemis','Science','Deep Space','ISS']},
+  {name:'Blue Origin',country:'USA', tag:'Heavy Lift', desc:'Building New Glenn heavy-lift rocket and New Shepard suborbital vehicle. Developing Blue Moon lunar lander for NASA Artemis.',                         launches:32, missions:4, employees:'10,000+',tags:['New Glenn','New Shepard','Lunar']},
+  {name:'ESA',      country:'Europe',tag:'Earth Obs',  desc:'Operating Ariane 6 and partnering on ISS operations and Earth observation. Contributions to JWST and upcoming JUICE mission.',                         launches:12, missions:22,employees:'2,200',  tags:['Ariane 6','JUICE','JWST']},
+  {name:'CNSA',     country:'China', tag:'Lunar',      desc:'Operating Tiangong Space Station and executing lunar and Mars programs including sample-return missions and crewed Moon landings planned by 2030.',     launches:67, missions:14,employees:'N/A',    tags:['Tiangong','Lunar','Mars']},
+  {name:'Rocket Lab',country:'USA/NZ',tag:'Small Sat', desc:'Providing dedicated small-sat launches via Electron and developing Neutron medium-lift rocket. Expanding into spacecraft manufacturing.',              launches:54, missions:9, employees:'2,000+', tags:['Electron','Neutron','HASTE']},
+  {name:'ULA',      country:'USA',   tag:'Gov Launch', desc:'Transitioning from Atlas V to Vulcan Centaur. Focused on national-security and government payloads with high-reliability mission assurance.',           launches:160,missions:6, employees:'3,900',  tags:['Vulcan','Atlas V','Delta IV']},
+];
+
+document.getElementById('companies-grid').innerHTML=COMPANIES.map(c=>`
+  <div class="company-card">
+    <div class="co-header">
+      <div><div class="co-name">${c.name}</div><div class="co-country">${c.country}</div></div>
+      <div class="co-focus">${c.tag}</div>
+    </div>
+    <div class="co-desc">${c.desc}</div>
+    <div class="co-stats">
+      <div class="co-stat"><div class="co-stat-num">${c.launches}</div><div class="co-stat-lbl">Launches</div></div>
+      <div class="co-stat"><div class="co-stat-num">${c.missions}</div><div class="co-stat-lbl">Missions</div></div>
+      <div class="co-stat"><div class="co-stat-num" style="font-size:1rem">${c.employees}</div><div class="co-stat-lbl">Staff</div></div>
+    </div>
+    <div class="co-tags">${c.tags.map(t=>`<span class="co-tag">${t}</span>`).join('')}</div>
+  </div>`).join('');
+
+// ── Load data ─────────────────────────────────────────────────────────────
+async function loadData(){
+  try{
+    let upcoming,previous;
+    const cu=cacheGet('up2'), cp=cacheGet('prev2');
+    if(cu&&cp){upcoming=cu;previous=cp;}
+    else{
+      const[ud,pd]=await Promise.all([fetchJ(`${RL}/launches/next/15`),fetchJ(`${RL}/launches/past/15`)]);
+      upcoming=(ud.result||[]).map(l=>normalizeRL(l,false));
+      previous=(pd.result||[]).map(l=>normalizeRL(l,true));
+      cacheSet('up2',upcoming); cacheSet('prev2',previous);
+    }
+
+    const agencies=new Set([...upcoming,...previous].map(l=>l.launch_service_provider?.name).filter(Boolean));
+    const thisYear=previous.filter(l=>new Date(l.net||l.window_start).getFullYear()===new Date().getFullYear());
+
+    function animN(id,target){
+      const el=document.getElementById(id); let cur=0;
+      const step=Math.max(1,Math.ceil(target/28));
+      const iv=setInterval(()=>{cur=Math.min(cur+step,target);el.textContent=cur+(id==='stat-year'?'+':'');if(cur>=target)clearInterval(iv);},45);
+    }
+    animN('stat-upcoming',upcoming.length); animN('stat-recent',previous.length);
+    animN('stat-agencies',agencies.size);   animN('stat-year',thisYear.length);
+
+    document.getElementById('upcoming-grid').innerHTML=upcoming.length
+      ?upcoming.map(l=>buildCard(l,true)).join('')
+      :'<p style="color:var(--dim);padding:32px;font-family:var(--fm);font-size:0.75rem;grid-column:1/-1">No upcoming launches found.</p>';
+
+    document.getElementById('recent-grid').innerHTML=previous.length
+      ?previous.map(l=>buildCard(l,false)).join('')
+      :'<p style="color:var(--dim);padding:32px;font-family:var(--fm);font-size:0.75rem;grid-column:1/-1">No recent launches found.</p>';
+
+    allTl=[...upcoming,...previous].sort((a,b)=>new Date(a.net||a.window_start)-new Date(b.net||b.window_start));
+    document.getElementById('tl-container').innerHTML=buildTl(allTl);
+    requestAnimationFrame(obsTimeline);
+    window._launches=[...upcoming,...previous];
+    setInterval(tickAll,1000); tickAll();
+  }catch(err){
+    const msg=`<div class="error-box" style="grid-column:1/-1">⚠ ${err.message}<br><small>Could not reach rocketlaunch.live — try refreshing.</small></div>`;
+    document.getElementById('upcoming-grid').innerHTML=msg;
+    document.getElementById('recent-grid').innerHTML='';
+    document.getElementById('tl-container').innerHTML=msg;
+  }
+}
+
+// ── Navigation ────────────────────────────────────────────────────────────
+function showTab(id,btn){
+  document.querySelectorAll('.section').forEach(s=>s.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  btn.classList.add('active');
+  if(id==='timeline-section') requestAnimationFrame(obsTimeline);
+}
+
+// ── Launch detail modal ───────────────────────────────────────────────────
+function openModal(id){
+  const launch=(window._launches||[]).find(l=>l.id===id);
+  if(!launch) return;
+
+  const veh=launch.rocket?.configuration?.name||'Unknown Vehicle';
+  const org=launch.launch_service_provider?.name||'—';
+  const sa=launch.status?.abbrev||'TBD';
+  const net=launch.net?new Date(launch.net):null;
+  const win=launch.window_start?new Date(launch.window_start):null;
+
+  const img=document.getElementById('modal-img');
+  img.onerror=function(){this.onerror=null;this.src=FALLBACK_ROCKET_IMG;};
+  img.src=launch.image?.thumbnail_url||launch.image?.image_url||vehicleImg(veh,launch.id);
+
+  const badge=document.getElementById('modal-status-badge');
+  badge.textContent=launch.status?.name||sa;
+  badge.className='card-badge '+badgeClass(sa);
+
+  document.getElementById('modal-name').textContent=launch.name;
+  document.getElementById('modal-provider').textContent=org;
+
+  const desc=launch.mission?.description||'';
+  const descEl=document.getElementById('modal-desc');
+  descEl.textContent=desc;
+  descEl.style.display=desc?'block':'none';
+
+  document.getElementById('modal-net').textContent=net?fmtDate(net.toISOString()):'TBD';
+  document.getElementById('modal-window').textContent=win?win.toLocaleTimeString('en-US',{hour:'2-digit',minute:'2-digit',hour12:false})+'Z':'TBD';
+  document.getElementById('modal-status-txt').textContent=launch.status?.name||'TBD';
+  document.getElementById('modal-vehicle').textContent=veh;
+  document.getElementById('modal-org').textContent=org;
+
+  const lat=launch.pad?.latitude, lon=launch.pad?.longitude;
+  document.getElementById('modal-pad').textContent=launch.pad?.name||'—';
+  document.getElementById('modal-loc').textContent=launch.pad?.location?.name||'—';
+  document.getElementById('modal-coords').textContent=lat&&lon?`${Number(lat).toFixed(2)}°, ${Number(lon).toFixed(2)}°`:'—';
+
+  document.getElementById('launch-modal').classList.add('open');
+  document.body.style.overflow='hidden';
+}
+
+function closeModal(){
+  document.getElementById('launch-modal').classList.remove('open');
+  document.body.style.overflow='';
+}
+
+document.addEventListener('keydown',e=>{if(e.key==='Escape')closeModal();});
+
+loadData();
+</script>
+</body>
+</html>

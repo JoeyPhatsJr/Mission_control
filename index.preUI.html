@@ -49,13 +49,6 @@
   --card-shadow: 0 24px 64px rgba(0,0,0,0.7);
   --star-invert: 0;
   --star-opacity: 0.7;
-  /* depth & finish (elevation) */
-  --bg-glow: radial-gradient(ellipse 100% 62% at 50% -6%, rgba(13,54,82,0.6), transparent 58%),
-             radial-gradient(ellipse 60% 40% at 88% 8%, rgba(34,211,238,0.06), transparent 60%);
-  --elev-1: 0 1px 0 rgba(255,255,255,0.03) inset, 0 8px 24px -12px rgba(0,0,0,0.6);
-  --elev-2: 0 1px 0 rgba(255,255,255,0.04) inset, 0 18px 44px -18px rgba(0,0,0,0.72);
-  --sheen: linear-gradient(180deg, rgba(255,255,255,0.05), transparent 40%);
-  --hair: rgba(255,255,255,0.045);   /* top hairline highlight */
   /* type */
   --fd: 'Oxanium', 'Avenir Next Condensed', sans-serif;
   --fm: 'JetBrains Mono', 'SFMono-Regular', monospace;
@@ -97,12 +90,6 @@
   --card-shadow: 0 24px 64px rgba(30,64,92,0.25);
   --star-invert: 1;
   --star-opacity: 0.16;
-  --bg-glow: radial-gradient(ellipse 100% 60% at 50% -8%, rgba(180,210,232,0.55), transparent 60%),
-             radial-gradient(ellipse 55% 38% at 88% 6%, rgba(14,116,144,0.07), transparent 62%);
-  --elev-1: 0 1px 0 rgba(255,255,255,0.7) inset, 0 8px 22px -14px rgba(30,64,92,0.28);
-  --elev-2: 0 1px 0 rgba(255,255,255,0.8) inset, 0 20px 46px -20px rgba(30,64,92,0.32);
-  --sheen: linear-gradient(180deg, rgba(255,255,255,0.6), transparent 44%);
-  --hair: rgba(255,255,255,0.6);
   color-scheme: light;
 }
 
@@ -112,22 +99,12 @@ html, body { height: 100%; }
 body {
   font-family: var(--fu);
   font-size: var(--t-base);
-  background: var(--bg-glow), var(--bg);
-  background-attachment: fixed;
+  background: var(--bg);
   color: var(--text);
   min-height: 100vh;
   overflow-x: hidden;
   transition: background 0.35s ease, color 0.35s ease;
-  -webkit-font-smoothing: antialiased;
-  text-rendering: optimizeLegibility;
 }
-
-/* refined scrollbars */
-* { scrollbar-width: thin; scrollbar-color: var(--border3) transparent; }
-::-webkit-scrollbar { width: 11px; height: 11px; }
-::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 8px; border: 3px solid transparent; background-clip: content-box; }
-::-webkit-scrollbar-thumb:hover { background: var(--border3); background-clip: content-box; }
-::-webkit-scrollbar-track { background: transparent; }
 
 /* cyan engineering grid, masked to a soft ellipse */
 body::before {
@@ -181,11 +158,10 @@ body::before {
 .topbar {
   padding: 0 clamp(16px, 3vw, 36px);
   height: 60px;
-  background: linear-gradient(180deg, color-mix(in srgb, var(--bg) 92%, transparent), color-mix(in srgb, var(--bg) 80%, transparent));
-  backdrop-filter: blur(22px) saturate(170%);
-  -webkit-backdrop-filter: blur(22px) saturate(170%);
+  background: color-mix(in srgb, var(--bg) 86%, transparent);
+  backdrop-filter: blur(20px) saturate(160%);
+  -webkit-backdrop-filter: blur(20px) saturate(160%);
   border-bottom: 1px solid var(--border);
-  box-shadow: 0 1px 0 var(--hair) inset, 0 10px 30px -20px rgba(0,0,0,0.7);
 }
 .brand {
   display: flex; align-items: center; gap: 12px;
@@ -234,12 +210,7 @@ body::before {
   transition: color 0.18s, border-color 0.18s;
   white-space: nowrap; flex-shrink: 0;
 }
-.tab[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); text-shadow: 0 0 16px var(--glow-soft); }
-.tab[aria-selected="true"]::after {
-  content: ''; position: absolute; left: 12px; right: 12px; bottom: -2px; height: 2px;
-  background: var(--accent); box-shadow: 0 0 12px var(--accent), 0 0 4px var(--accent);
-}
-.tab { position: relative; }
+.tab[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); }
 .tab:hover:not([aria-selected="true"]) { color: var(--text2); }
 
 .top-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
@@ -291,8 +262,8 @@ main {
   letter-spacing: 0.28em; color: var(--accent); text-transform: uppercase;
   margin: 0 0 var(--sp-5);
 }
-.sec-head::before { content: ''; width: 3px; height: 15px; background: var(--accent); flex-shrink: 0; border-radius: 2px; box-shadow: 0 0 10px var(--accent), 0 0 3px var(--accent); }
-.sec-head::after  { content: ''; flex: 1; height: 1px; background: linear-gradient(to right, color-mix(in srgb, var(--accent) 30%, var(--border2)), transparent); }
+.sec-head::before { content: ''; width: 3px; height: 14px; background: var(--accent); flex-shrink: 0; }
+.sec-head::after  { content: ''; flex: 1; height: 1px; background: linear-gradient(to right, var(--border2), transparent); }
 .sec-head .sec-count {
   font-family: var(--fm); font-size: 0.6rem; font-weight: 400;
   color: var(--dim); letter-spacing: 0.1em;
@@ -302,11 +273,9 @@ main {
 .hero {
   position: relative;
   border: 1px solid var(--border2);
-  border-top-color: var(--hair);
-  border-radius: 12px;
+  border-radius: 10px;
   overflow: hidden;
   background: var(--surf);
-  box-shadow: var(--elev-2);
   margin-bottom: var(--sp-6);
   min-height: 340px;
   display: grid;
@@ -454,21 +423,13 @@ main {
 .stats {
   display: grid; grid-template-columns: repeat(4, 1fr);
   gap: 1px; background: var(--border);
-  border: 1px solid var(--border); border-top-color: var(--hair);
-  border-radius: var(--rad);
+  border: 1px solid var(--border); border-radius: var(--rad);
   overflow: hidden; margin-bottom: var(--sp-6);
-  box-shadow: var(--elev-1);
 }
-.stat { background: var(--surf); padding: 26px 24px 22px; position: relative; transition: background 0.18s ease; }
-.stat:hover { background: var(--surf2); }
-.stat::before {
-  content: ''; position: absolute; inset: 0 auto 0 0; width: 100%; height: 2px;
-  background: var(--sheen); pointer-events: none;
-}
+.stat { background: var(--surf); padding: 26px 24px 22px; position: relative; }
 .stat::after {
   content: ''; position: absolute; left: 24px; bottom: 14px;
-  width: 18px; height: 2px; background: var(--accent-d); opacity: 0.7;
-  box-shadow: 0 0 8px var(--accent);
+  width: 18px; height: 2px; background: var(--accent-d); opacity: 0.6;
 }
 .stat-num {
   font-family: var(--fd); font-size: clamp(2.4rem, 4vw, 3.6rem);
@@ -505,9 +466,8 @@ main {
 }
 .chip:hover { color: var(--text); border-color: var(--border3); }
 .chip[aria-pressed="true"] {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 22%, transparent), var(--glow-soft));
-  border-color: var(--accent); color: var(--accent);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 25%, transparent), 0 4px 12px -6px var(--glow);
+  background: var(--glow-soft); border-color: var(--accent);
+  color: var(--accent);
 }
 .chip .chip-dot { width: 7px; height: 7px; border-radius: 50%; flex-shrink: 0; }
 .ctl-sep { width: 1px; height: 22px; background: var(--border2); margin: 0 4px; flex-shrink: 0; }
@@ -538,9 +498,8 @@ main {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(min(330px, 100%), 1fr));
   gap: 1px;
-  border: 1px solid var(--border); border-top-color: var(--hair); border-radius: var(--rad);
+  border: 1px solid var(--border); border-radius: var(--rad);
   overflow: hidden;
-  box-shadow: var(--elev-1);
 }
 .card {
   background: var(--surf);
@@ -549,20 +508,13 @@ main {
   cursor: pointer; position: relative;
   border: none; text-align: left; color: inherit;
   font: inherit; padding: 0; width: 100%;
-  transition: background 0.2s ease, box-shadow 0.2s ease;
+  transition: background 0.15s;
 }
-.card:hover, .card:focus-visible {
-  background: var(--surf2); z-index: 1;
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--prov, var(--accent)) 45%, var(--border2)),
-              inset 0 0 0 1px color-mix(in srgb, var(--prov, var(--accent)) 12%, transparent),
-              0 14px 40px -22px color-mix(in srgb, var(--prov, var(--accent)) 60%, #000);
-}
+.card:hover, .card:focus-visible { background: var(--surf2); }
 .card::before {
   content: ''; position: absolute; top: 0; left: 0; bottom: 0; width: 2px;
-  background: var(--prov, var(--border2)); opacity: 0.6; z-index: 3;
-  transition: opacity 0.2s ease, box-shadow 0.2s ease;
+  background: var(--prov, var(--border2)); opacity: 0.65; z-index: 2;
 }
-.card:hover::before, .card:focus-visible::before { opacity: 1; box-shadow: 0 0 14px var(--prov, var(--accent)); }
 .card-media { position: relative; height: 210px; overflow: hidden; flex-shrink: 0; }
 .card-media img {
   position: absolute; inset: 0;
@@ -740,19 +692,13 @@ main {
 .tl-detail-facts { display: flex; flex-direction: column; gap: 5px; }
 .tl-open-btn {
   margin-top: 10px; align-self: start;
-  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 12%, transparent), transparent);
-  border: 1px solid color-mix(in srgb, var(--accent) 55%, transparent);
-  color: var(--accent); border-radius: 5px; padding: 6px 13px;
+  background: transparent; border: 1px solid var(--accent-d);
+  color: var(--accent); border-radius: 4px; padding: 5px 12px;
   font-family: var(--fd); font-size: 0.6rem; font-weight: 700;
   letter-spacing: 0.12em; text-transform: uppercase; cursor: pointer;
-  transition: background 0.18s ease, box-shadow 0.18s ease, border-color 0.18s ease, transform 0.12s ease;
+  transition: background 0.15s;
 }
-.tl-open-btn:hover {
-  background: linear-gradient(180deg, color-mix(in srgb, var(--accent) 26%, transparent), color-mix(in srgb, var(--accent) 8%, transparent));
-  border-color: var(--accent);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent) 30%, transparent), 0 6px 18px -8px var(--glow);
-}
-.tl-open-btn:active { transform: translateY(1px); }
+.tl-open-btn:hover { background: var(--glow-soft); }
 .tl-empty { color: var(--dim); padding: 40px 12px; font-family: var(--fm); font-size: 0.72rem; letter-spacing: 0.1em; }
 
 /* ── globe ───────────────────────────────────────────────────── */
@@ -894,8 +840,7 @@ main {
 .co-grid {
   display: grid; grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr));
   gap: 1px;
-  border: 1px solid var(--border); border-top-color: var(--hair); border-radius: var(--rad); overflow: hidden;
-  box-shadow: var(--elev-1);
+  border: 1px solid var(--border); border-radius: var(--rad); overflow: hidden;
 }
 .co-card {
   background: var(--surf); padding: 24px;
@@ -922,9 +867,6 @@ main {
   border-radius: 4px; white-space: nowrap; flex-shrink: 0;
 }
 .co-desc { font-size: 0.82rem; color: var(--text2); line-height: 1.65; margin-bottom: 16px; }
-.co-wiki { display: none; font-size: 0.76rem; color: var(--text2); line-height: 1.6; margin: -6px 0 16px; padding-left: 10px; border-left: 2px solid var(--border2); }
-.co-wiki.has-wiki { display: block; }
-.co-wiki::after { content: ' — Wikipedia'; font-family: var(--fm); font-size: 0.62rem; color: var(--dim); letter-spacing: 0.04em; }
 .co-stats {
   display: grid; grid-template-columns: repeat(3, 1fr);
   gap: 1px; background: var(--border);
@@ -1012,51 +954,8 @@ main {
 .locator {
   width: 100%; height: 150px; display: block;
   border: 1px solid var(--border2); border-radius: 6px;
-  background: var(--surf2); touch-action: none; cursor: grab;
+  background: var(--surf2);
 }
-.loc-map { position: relative; }
-.loc-ctrls { position: absolute; top: 8px; right: 8px; display: flex; flex-direction: column; gap: 4px; }
-.loc-btn {
-  width: 22px; height: 22px; border: 1px solid var(--border2); border-radius: 4px;
-  background: color-mix(in srgb, var(--surf) 80%, transparent); color: var(--text2);
-  font-family: var(--fm); font-size: 0.72rem; line-height: 1; cursor: pointer;
-  display: flex; align-items: center; justify-content: center; backdrop-filter: blur(3px);
-  transition: color 0.15s, border-color 0.15s;
-}
-.loc-btn:hover { color: var(--accent); border-color: var(--accent); }
-.loc-read {
-  position: absolute; left: 8px; bottom: 8px; pointer-events: none;
-  font-family: var(--fm); font-size: 0.5rem; letter-spacing: 0.08em; color: var(--dim);
-  background: color-mix(in srgb, var(--surf) 68%, transparent); padding: 2px 6px; border-radius: 3px;
-}
-/* §12d · Mission Briefing intel layer */
-.brief { border: 1px solid var(--border); border-radius: 8px; background: var(--surf2); padding: 14px 16px 16px; margin-bottom: 20px; }
-.brief-title { font-family: var(--fm); font-size: 0.56rem; letter-spacing: 0.26em; color: var(--accent); text-transform: uppercase; margin-bottom: 12px; }
-.brief-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
-.brief-card { border: 1px solid var(--border2); border-radius: 6px; background: var(--surf); padding: 11px 12px 12px; min-width: 0; }
-.brief-h { font-family: var(--fm); font-size: 0.52rem; letter-spacing: 0.16em; color: var(--text2); text-transform: uppercase; margin-bottom: 9px; display: flex; align-items: center; gap: 6px; }
-.brief-est { font-size: 0.9em; letter-spacing: 0.08em; color: var(--dim); border: 1px solid var(--border2); border-radius: 3px; padding: 1px 4px; text-transform: uppercase; }
-.brief-est.crew { color: var(--accent); border-color: color-mix(in srgb, var(--accent) 40%, transparent); }
-.brief-est.official { color: var(--green); border-color: color-mix(in srgb, var(--green) 45%, transparent); }
-.gauge-num { font-family: var(--fm); font-size: 1.5rem; font-weight: 600; color: var(--text); line-height: 1; }
-.gauge-num small { font-size: 0.5em; color: var(--dim); margin-left: 1px; }
-.gauge { height: 7px; border-radius: 4px; background: var(--surf3); overflow: hidden; margin: 7px 0 8px; }
-.gauge-fill { height: 100%; transform-origin: left; background: linear-gradient(90deg, var(--amber), var(--green)); }
-.brief-verdict { font-family: var(--fm); font-size: 0.62rem; letter-spacing: 0.12em; color: var(--text); text-transform: uppercase; margin-bottom: 6px; }
-.brief-outlook { font-family: var(--fm); font-size: 0.52rem; color: var(--text2); display: flex; align-items: center; gap: 5px; flex-wrap: wrap; }
-.ol-tag { font-size: 0.86em; letter-spacing: 0.06em; color: var(--dim); border: 1px solid var(--border2); border-radius: 3px; padding: 1px 4px; text-transform: uppercase; }
-.brief-note { font-family: var(--fm); font-size: 0.54rem; color: var(--dim); }
-.brief-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-top: 8px; }
-.brief-chip { font-family: var(--fm); font-size: 0.5rem; letter-spacing: 0.06em; color: var(--text2); background: var(--surf3); border-radius: 3px; padding: 3px 6px; text-transform: uppercase; }
-.brief-crew { display: flex; flex-direction: column; gap: 7px; }
-.crew-row { display: flex; flex-direction: column; gap: 1px; }
-.crew-name { font-family: var(--fm); font-size: 0.64rem; color: var(--text); }
-.crew-role { font-family: var(--fm); font-size: 0.52rem; color: var(--dim); text-transform: uppercase; letter-spacing: 0.05em; }
-.brief-band { font-family: var(--fm); font-size: 0.62rem; color: var(--text); margin-bottom: 8px; }
-.alt-scale { position: relative; height: 5px; border-radius: 3px; background: linear-gradient(90deg, color-mix(in srgb, var(--accent) 40%, var(--surf3)), var(--surf3)); margin-bottom: 3px; }
-.alt-mark { position: absolute; top: 50%; width: 9px; height: 9px; border-radius: 50%; background: var(--accent); transform: translate(-50%,-50%); box-shadow: 0 0 6px var(--accent); }
-.alt-labels { display: flex; justify-content: space-between; font-family: var(--fm); font-size: 0.44rem; color: var(--dim); letter-spacing: 0.1em; margin-bottom: 9px; }
-@media (max-width: 560px) { .brief-grid { grid-template-columns: 1fr; } }
 .m-nav {
   display: flex; justify-content: space-between; align-items: center;
   gap: 12px; margin-top: 20px; padding-top: 16px;
@@ -1367,11 +1266,10 @@ main {
 .an-tiles {
   display: grid; grid-template-columns: repeat(4, 1fr);
   gap: 1px; background: var(--border);
-  border: 1px solid var(--border); border-top-color: var(--hair); border-radius: var(--rad);
-  overflow: hidden; margin-bottom: var(--sp-5); box-shadow: var(--elev-1);
+  border: 1px solid var(--border); border-radius: var(--rad);
+  overflow: hidden; margin-bottom: var(--sp-5);
 }
-.an-tile { background: var(--surf); padding: 22px 22px 18px; transition: background 0.18s ease; }
-.an-tile:hover { background: var(--surf2); }
+.an-tile { background: var(--surf); padding: 22px 22px 18px; }
 .an-tile .an-tnum {
   font-family: var(--fd); font-size: clamp(1.9rem, 3.4vw, 2.9rem); font-weight: 800;
   line-height: 1; letter-spacing: -0.02em; color: var(--text);
@@ -1383,19 +1281,10 @@ main {
 
 .an-panels { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: var(--sp-4); }
 .an-card {
-  border: 1px solid var(--border); border-top-color: var(--hair); border-radius: var(--rad);
-  background: var(--surf); padding: 20px 22px; box-shadow: var(--elev-1);
+  border: 1px solid var(--border); border-radius: var(--rad);
+  background: var(--surf); padding: 20px 22px;
 }
 .an-card.span2 { grid-column: 1 / -1; }
-.swx { display: flex; gap: 22px; align-items: flex-end; flex-wrap: wrap; }
-.swx-now { min-width: 150px; }
-.swx-kp { font-family: var(--fm); font-size: 2.6rem; font-weight: 600; line-height: 1; }
-.swx-kp small { font-size: 0.3em; color: var(--dim); margin-left: 4px; letter-spacing: 0.1em; }
-.swx-state { font-family: var(--fm); font-size: 0.72rem; letter-spacing: 0.14em; text-transform: uppercase; margin-top: 7px; }
-.swx-note { font-size: 0.72rem; color: var(--text2); margin-top: 8px; line-height: 1.5; }
-.swx-when { font-family: var(--fm); font-size: 0.54rem; color: var(--dim); margin-top: 6px; letter-spacing: 0.06em; }
-.swx-spark { flex: 1; min-width: 180px; height: 68px; display: flex; align-items: flex-end; gap: 3px; border-bottom: 1px solid var(--border2); padding-bottom: 1px; }
-.swx-bar { flex: 1; border-radius: 2px 2px 0 0; min-height: 4px; }
 .an-card h3 {
   font-family: var(--fd); font-size: 0.66rem; font-weight: 700;
   letter-spacing: 0.2em; color: var(--accent); text-transform: uppercase;
@@ -1982,7 +1871,6 @@ function mkSeed(idx, isPast, offMin, name, provider, vehicle, padKey, descriptio
     customer: o.customer || null,
     booster: o.booster || null,                // e.g. "B1088 · Flight 14 · Droneship (OCISLY)"
     program: o.program || null,
-    crew: o.crew || null,                      // [{name, role, agency}] for crewed missions
     weather: null,                             // live-only (from the API)
     isPast,
     source: 'seed',
@@ -2036,15 +1924,7 @@ const SEED_UPCOMING = [
     { st: 'tbd', win: 15, orbit: 'LEO', payload: 'HTV-X cargo · ~5.8 t', customer: 'JAXA / NASA', booster: 'Expendable', program: 'ISS Resupply' }),
   mkSeed(16, false, 37440, 'NS-36', 'Blue Origin', 'New Shepard', 'lsone',
     'Crewed suborbital flight carrying six customers past the Kármán line, including the mission\'s first flight-qualified student researcher.',
-    { win: 240, orbit: 'Suborbital', payload: '6 crew', customer: 'Blue Origin', booster: 'NS4 · RTLS (reusable)', program: 'New Shepard',
-      crew: [
-        { name: 'K. Ostrander', role: 'Flight lead', agency: 'Blue Origin' },
-        { name: 'M. Reyes', role: 'Researcher', agency: 'commercial' },
-        { name: 'A. Okafor', role: 'Payload specialist', agency: 'commercial' },
-        { name: 'J. Halvorsen', role: 'Participant', agency: 'commercial' },
-        { name: 'S. Devi', role: 'Student researcher', agency: 'commercial' },
-        { name: 'T. Bianchi', role: 'Participant', agency: 'commercial' },
-      ] }),
+    { win: 240, orbit: 'Suborbital', payload: '6 crew', customer: 'Blue Origin', booster: 'NS4 · RTLS (reusable)', program: 'New Shepard' }),
   mkSeed(17, false, 43200, 'Neutron · Return to Sender II', 'Rocket Lab', 'Neutron', 'wallops3',
     'Second orbital flight of the reusable medium-lift Neutron, attempting the vehicle\'s first downrange barge recovery of the first stage.',
     { st: 'tbd', win: 120, orbit: 'LEO', payload: 'Mass simulator · demo', customer: 'Rocket Lab', booster: 'Neutron S1 · Barge recovery (attempt)', program: 'Neutron' }),
@@ -2067,23 +1947,13 @@ const SEED_PAST = [
     { orbit: 'LEO', payload: '23 × Starlink v2 Mini · ~17 t', customer: 'SpaceX', booster: 'B1080 · Flight 21 · Droneship (ASOG)', program: 'Starlink' }),
   mkSeed(6, true, -11520, 'Shenzhou-22', 'CNSA', 'Long March 2F', 'jiuquan',
     'Three-taikonaut crew rotation to the Tiangong space station, beginning a six-month increment focused on space-medicine research.',
-    { orbit: 'LEO', payload: '3 crew · Shenzhou', customer: 'CMSA', booster: 'Expendable', program: 'Tiangong',
-      crew: [
-        { name: 'Zhang Wei', role: 'Commander', agency: 'CNSA' },
-        { name: 'Li Qiang', role: 'Operator', agency: 'CNSA' },
-        { name: 'Sun Hao', role: 'Flight engineer', agency: 'CNSA' },
-      ] }),
+    { orbit: 'LEO', payload: '3 crew · Shenzhou', customer: 'CMSA', booster: 'Expendable', program: 'Tiangong' }),
   mkSeed(7, true, -14400, 'GPS III SV09', 'ULA', 'Vulcan Centaur VC2S', 'slc41',
     'Ninth GPS III navigation satellite, Vulcan\'s first national-security mission after certification, delivered to medium Earth orbit.',
     { orbit: 'MEO', payload: 'GPS III SV09 · ~4.3 t', customer: 'US Space Force', booster: 'Expendable', program: 'NSSL' }),
   mkSeed(8, true, -17280, 'Soyuz MS-28', 'Roscosmos', 'Soyuz 2.1a', 'baikonur',
     'Crewed flight ferrying two cosmonauts and one NASA astronaut to the ISS under the integrated crew-swap agreement.',
-    { orbit: 'LEO', payload: '3 crew · Soyuz MS', customer: 'Roscosmos / NASA', booster: 'Expendable', program: 'ISS Crew',
-      crew: [
-        { name: 'A. Volkov', role: 'Commander', agency: 'Roscosmos' },
-        { name: 'N. Sokolova', role: 'Flight engineer', agency: 'Roscosmos' },
-        { name: 'D. Carter', role: 'Flight engineer', agency: 'NASA' },
-      ] }),
+    { orbit: 'LEO', payload: '3 crew · Soyuz MS', customer: 'Roscosmos / NASA', booster: 'Expendable', program: 'ISS Crew' }),
   mkSeed(9, true, -21600, 'Starship Flight 11', 'SpaceX', 'Starship', 'starbase',
     'Booster caught successfully at the tower; the ship completed its burn but broke up during a steep experimental re-entry profile.',
     { st: 'partial', orbit: 'Suborbital (test)', payload: 'Test article · Starlink simulators', customer: 'SpaceX', booster: 'Super Heavy · Tower catch ✓', program: 'Starship' }),
@@ -2118,17 +1988,8 @@ const API = {
   up:   'https://fdo.rocketlaunch.live/json/launches/next/15',
   past: 'https://fdo.rocketlaunch.live/json/launches/past/15',
   iss:  'https://api.wheretheiss.at/v1/satellites/25544',
-  // The Space Devs Launch Library 2 — primary feed (real crew, official probability, real past launches).
-  // detailed mode carries crew/probability/weather; ~15 req/hr unauth, so it's cached hard (LL2_TTL).
-  ll2Up:   'https://ll.thespacedevs.com/2.3.0/launches/upcoming/?mode=detailed&limit=20&hide_recent_previous=true',
-  ll2Past: 'https://ll.thespacedevs.com/2.3.0/launches/previous/?mode=detailed&limit=15',
-  swpcKp:  'https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json',   // NOAA space weather (keyless)
-  meteo:   (lat, lon) => `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,precipitation_probability,cloud_cover,wind_speed_10m&temperature_unit=fahrenheit&wind_speed_unit=mph&forecast_days=16&timeformat=unixtime`,
-  wiki:    (title) => `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}?redirect=true`,
 };
 const CACHE_TTL = 5 * MIN;
-const LL2_TTL = 30 * MIN;     // Launch Library 2 is rate-limited; cache longer
-const WX_TTL = 30 * MIN;      // space weather + forecasts refresh slowly
 
 async function fetchJSON(url, timeoutMs = 6000) {
   const ctl = new AbortController();
@@ -2139,10 +2000,10 @@ async function fetchJSON(url, timeoutMs = 6000) {
     return await r.json();
   } finally { clearTimeout(t); }
 }
-function cacheGet(k, ttl = CACHE_TTL) {
+function cacheGet(k) {
   try {
     const { data, ts } = JSON.parse(sessionStorage.getItem('mc2-' + k));
-    return (Date.now() - ts < ttl) ? data : null;
+    return (Date.now() - ts < CACHE_TTL) ? data : null;
   } catch { return null; }
 }
 function cacheSet(k, data) {
@@ -2212,7 +2073,7 @@ function normalizeLive(raw, isPast) {
     status,
     image: apiImg,
     video: ytMedia ? String(ytMedia.youtube_vidid) : null,   // official webcast/replay when the API has one
-    orbit, payloadInfo: null, customer: null, booster, program, crew: null, weather,
+    orbit, payloadInfo: null, customer: null, booster, program, weather,
     isPast,
     source: 'live',
   };
@@ -2227,98 +2088,12 @@ async function loadLive() {
   cacheSet('up', upcoming); cacheSet('past', past);
   return { upcoming, past, cached: false };
 }
-/* ── Launch Library 2 (The Space Devs) — richer primary feed ──
-   Real crew rosters, an official launch `probability`, weather concerns,
-   and genuine PAST launches (so the badge can read full LIVE). Same
-   normalized launch shape as rocketlaunch.live, so every view is agnostic.
-   Images are intentionally NOT taken from LL2 (their CDN is unverified on
-   file://) — the existing Flickr chain still supplies rocket photos. */
-function ll2Status(abbrev) {
-  const a = (abbrev || '').toLowerCase();
-  if (/partial/.test(a)) return 'partial';
-  if (/success/.test(a)) return 'success';
-  if (/fail/.test(a)) return 'failure';
-  if (/flight|progress/.test(a)) return 'inflight';
-  if (/hold/.test(a)) return 'hold';
-  if (a === 'go' || a === 'tbc') return 'go';
-  return 'tbd';
-}
-function ll2Crew(raw) {
-  let stages = raw.rocket?.spacecraft_stage;
-  if (!stages) return null;
-  if (!Array.isArray(stages)) stages = [stages];
-  const crew = [];
-  for (const st of stages) for (const c of (st?.launch_crew || [])) {
-    const name = c?.astronaut?.name;
-    if (name) crew.push({ name, role: txt(c?.role?.title || c?.role?.role, 'Crew'), agency: txt(c?.astronaut?.agency?.name, '') });
-  }
-  return crew.length ? crew : null;
-}
-function normalizeLL2(raw, isPast) {
-  const net = raw.net ? Date.parse(raw.net) : NaN;
-  const winS = raw.window_start ? Date.parse(raw.window_start) : net;
-  const winE = raw.window_end ? Date.parse(raw.window_end) : NaN;
-  const cfg = raw.rocket?.configuration || {};
-  const padName = raw.pad?.name, locName = raw.pad?.location?.name;
-  const known = padLookup(padName, locName);
-  const lat = parseFloat(raw.pad?.latitude), lon = parseFloat(raw.pad?.longitude);
-  const orbit = txt(raw.mission?.orbit?.abbrev || raw.mission?.orbit?.name, '') || null;
-  const program = txt((raw.program && raw.program[0]?.name) || (cfg.program && cfg.program[0]?.name), '') || null;
-  const prob = Number.isFinite(raw.probability) && raw.probability >= 0 ? raw.probability : null;
-  const rawName = txt(raw.name, 'Unnamed Mission');
-  const missionName = txt(raw.mission?.name, '') || (rawName.includes('|') ? rawName.split('|').pop().trim() : rawName);
-  const weather = raw.weather_concerns ? { summary: txt(raw.weather_concerns, ''), tempF: null, windMph: null, condition: txt(raw.weather_concerns, '') } : null;
-  return {
-    id: 'll2-' + String(raw.id),
-    name: missionName,
-    provider: txt(raw.launch_service_provider?.name, 'Unknown Provider'),
-    vehicle: txt(cfg.full_name || cfg.name, 'TBD'),
-    pad: {
-      name: txt(padName, known?.name || 'TBD'),
-      location: txt(locName, known?.location || 'TBD'),
-      lat: Number.isFinite(lat) ? lat : (known?.lat ?? null),
-      lon: Number.isFinite(lon) ? lon : (known?.lon ?? null),
-      country: known?.country || txt((locName || '').split(',').pop().trim(), 'Other'),
-    },
-    description: txt(raw.mission?.description, ''),
-    net: Number.isFinite(net) ? net : null,
-    windowStart: Number.isFinite(winS) ? winS : (Number.isFinite(net) ? net : null),
-    windowEnd: Number.isFinite(winE) ? winE : null,
-    status: ll2Status(raw.status?.abbrev),
-    image: null,                            // keep the verified Flickr image chain (LL2 CDN unverified on file://)
-    video: null,
-    orbit, payloadInfo: null, customer: null, booster: null, program,
-    crew: ll2Crew(raw),
-    probability: prob,                      // official go probability (0–100) or null
-    weather,
-    isPast,
-    source: 'live',
-  };
-}
-async function loadLL2() {
-  const cu = cacheGet('ll2up', LL2_TTL), cp = cacheGet('ll2past', LL2_TTL);
-  if (cu && cp) return { upcoming: cu, past: cp, cached: true };
-  const [ud, pd] = await Promise.all([fetchJSON(API.ll2Up, 9000), fetchJSON(API.ll2Past, 9000)]);
-  const upcoming = (ud.results || []).map(r => normalizeLL2(r, false)).filter(l => l.net);
-  const past = (pd.results || []).map(r => normalizeLL2(r, true)).filter(l => l.net);
-  if (!upcoming.length && !past.length) throw new Error('empty LL2 payload');
-  cacheSet('ll2up', upcoming); cacheSet('ll2past', past);
-  return { upcoming, past, cached: false };
-}
-/* Feed strategy: try the richer Launch Library 2 first, fall back to
-   rocketlaunch.live, then (in boot) to the embedded seed. `provider`
-   tells the badge which source actually answered. */
-async function loadFeed() {
-  try { const r = await loadLL2(); return { ...r, provider: 'll2' }; }
-  catch { const r = await loadLive(); return { ...r, provider: 'rll' }; }
-}
 /* ════════════════════════════════════════════════════════════════
    §7 STATE — single store; every view renders from here.
    ════════════════════════════════════════════════════════════════ */
 const S = {
   upcoming: [], past: [], all: [], ordered: [], byId: new Map(),
   source: 'seed',
-  feedProvider: 'seed',      // 'll2' | 'rll' | 'seed' — which source answered
   filters: { provider: null, status: null, watch: false },
   sort: 'soonest',
   tlRange: 'all',
@@ -2329,14 +2104,13 @@ const S = {
   tz: 'local',               // 'local' | 'utc' — NET display zone (persisted)
   alerts: { enabled: true, mins: new Set([1440, 60, 10, 0]) },   // reminder prefs (persisted)
 };
-function setData(upcoming, past, source, provider) {
+function setData(upcoming, past, source) {
   S.upcoming = [...upcoming].sort((a, b) => a.net - b.net);
   S.past = [...past].sort((a, b) => b.net - a.net);
   S.all = [...S.upcoming, ...S.past];
   S.ordered = [...S.all].sort((a, b) => a.net - b.net);
   S.byId = new Map(S.all.map(l => [l.id, l]));
   S.source = source;
-  if (provider) S.feedProvider = provider;
   updateSourceBadge();
   renderAll();
   /* reconcile overlays that captured pre-upgrade launch ids */
@@ -2357,23 +2131,16 @@ function setData(upcoming, past, source, provider) {
 }
 function updateSourceBadge() {
   const badge = $('#src-badge'), t = $('#src-txt'), foot = $('#foot-src');
-  const provName = S.feedProvider === 'll2' ? 'THE SPACE DEVS (LL2)' : S.feedProvider === 'rll' ? 'ROCKETLAUNCH.LIVE' : 'EMBEDDED SEED';
   const map = {
-    live:   { cls: '',       txt: 'LIVE DATA' },
-    cached: { cls: 'cached', txt: 'CACHED' },
-    mixed:  { cls: 'cached', txt: 'LIVE + SAMPLE' },
-    seed:   { cls: 'sample', txt: 'SAMPLE DATA' },
+    live:   { cls: '',       txt: 'LIVE DATA',    foot: 'DATA: ROCKETLAUNCH.LIVE (LIVE)' },
+    cached: { cls: 'cached', txt: 'CACHED',       foot: 'DATA: ROCKETLAUNCH.LIVE (CACHED ≤5 MIN)' },
+    mixed:  { cls: 'cached', txt: 'LIVE + SAMPLE', foot: 'DATA: LIVE UPCOMING · EMBEDDED RECENT' },
+    seed:   { cls: 'sample', txt: 'SAMPLE DATA',  foot: 'DATA: EMBEDDED SEED (API UNREACHABLE)' },
   };
   const m = map[S.source] || map.seed;
   badge.className = 'src-badge ' + m.cls;
   t.textContent = m.txt;
-  if (foot) {
-    const suffix = S.source === 'seed' ? 'EMBEDDED SEED (API UNREACHABLE)'
-      : S.source === 'cached' ? `${provName} (CACHED)`
-      : S.source === 'mixed' ? 'LIVE UPCOMING · EMBEDDED RECENT'
-      : `${provName} (LIVE)`;
-    foot.textContent = 'DATA: ' + suffix;
-  }
+  if (foot) foot.textContent = m.foot;
 }
 function matchesFilters(l) {
   /* provider may be a '|'-joined set (company cards can map to several
@@ -2701,7 +2468,6 @@ function renderHero() {
   const l = S.upcoming.find(u => Number.isFinite(u.net)) || null;
   S.heroLaunch = l;
   if (!l) { slot.innerHTML = ''; return; }
-  loadForecast(l);                                    // real forecast for the next launch, if within range
   const color = provColor(l.provider);
   const ws = l.windowStart ?? l.net, we = l.windowEnd;
   slot.innerHTML = `
@@ -2964,7 +2730,7 @@ function coLaunches(co) {
   return S.all.filter(l => co.match.some(m => l.provider === m || l.provider.includes(m)));
 }
 function renderCompanies() {
-  $('#co-grid').innerHTML = COMPANIES.map((co, i) => {
+  $('#co-grid').innerHTML = COMPANIES.map(co => {
     const mine = coLaunches(co);
     const up = mine.filter(l => !l.isPast).length;
     const recent = mine.filter(l => l.isPast).sort((a, b) => b.net - a.net).slice(0, 5);
@@ -2984,7 +2750,6 @@ function renderCompanies() {
         <div class="co-focus">${esc(co.focus)}</div>
       </div>
       <p class="co-desc">${esc(co.desc)}</p>
-      <p class="co-wiki" id="co-wiki-${i}"></p>
       <div class="co-stats">
         <div class="co-stat"><div class="co-stat-num">${mine.length}</div><div class="co-stat-lbl">Tracked</div></div>
         <div class="co-stat"><div class="co-stat-num">${up}</div><div class="co-stat-lbl">Upcoming</div></div>
@@ -2994,7 +2759,6 @@ function renderCompanies() {
       <div class="co-tags">${co.tags.map(tg => `<span class="co-tag">${esc(tg)}</span>`).join('')}</div>
     </div>`;
   }).join('');
-  COMPANIES.forEach((co, i) => loadWiki(co.name, 'co-wiki-' + i));   // enrich with a real Wikipedia blurb (async)
 }
 /* ════════════════════════════════════════════════════════════════
    §13 GLOBE — lazy-loaded globe.gl. The library script tag is only
@@ -3413,293 +3177,6 @@ function modalStep(dir) {
   const next = S.ordered[idx + dir];
   if (next) openModal(next.id, MODAL.trigger);
 }
-/* ════════════════════════════════════════════════════════════════
-   §12d · MISSION BRIEFING — per-launch intel layer
-   Four honest answers about one launch: will it fly (a synthesized
-   go-call ESTIMATE), who/what is aboard (manifest), where it's going
-   (curated orbit neighborhood, ≈), and why it matters (context derived
-   from the tracked dataset). No external data or new dependencies —
-   the go-call is explicitly an estimate, orbit traffic figures are
-   approximate, historical facts are computed live from S.ordered.
-   ════════════════════════════════════════════════════════════════ */
-const ORBIT_INFO = {
-  LEO: { band: 'Low Earth Orbit',    alt: '160–2,000 km',   pos: 0.14, count: '~11,000 active', notables: ['Starlink', 'OneWeb', 'ISS / Tiangong'] },
-  SSO: { band: 'Sun-Synchronous',    alt: '600–800 km',     pos: 0.22, count: '~1,600 active',  notables: ['Earth-obs', 'Sentinel', 'weather'] },
-  MEO: { band: 'Medium Earth Orbit', alt: '~20,000 km',     pos: 0.60, count: '~150 active',    notables: ['GPS', 'Galileo', 'O3b mPOWER'] },
-  GEO: { band: 'Geostationary belt', alt: '35,786 km',      pos: 0.92, count: '~570 active',    notables: ['comms relays', 'GOES', 'SES'] },
-  SUB: { band: 'Suborbital arc',     alt: 'apogee ~100 km', pos: 0.04, count: 'no orbit',       notables: ['tourism', 'hypersonic', 'microgravity'] },
-};
-const STATUS_COLOR = { success: 'var(--green)', failure: 'var(--red)', partial: 'var(--amber)', inflight: 'var(--amber)' };
-function orbitBand(orbit) {
-  const o = (orbit || '').toUpperCase();
-  if (/SUBORBIT/.test(o)) return 'SUB';
-  if (/GEO|GTO/.test(o)) return 'GEO';
-  if (/MEO/.test(o)) return 'MEO';
-  if (/SSO|POLAR/.test(o)) return 'SSO';
-  return 'LEO';
-}
-// stable 0..1 hash of a string — gives each launch its own repeatable "luck of the draw"
-function hash01(s) {
-  let h = 2166136261;
-  for (let i = 0; i < s.length; i++) { h ^= s.charCodeAt(i); h = Math.imul(h, 16777619); }
-  return (h >>> 0) / 4294967296;
-}
-// deterministic per-launch weather outlook, modeled from the pad's climate +
-// the launch-time season/hour + a stable id hash. Used when the API supplies no
-// live forecast (the whole offline/seed path, and beyond live forecast range).
-function modelForecast(l) {
-  const lat = Number.isFinite(l.pad?.lat) ? l.pad.lat : 28.5;
-  const lon = Number.isFinite(l.pad?.lon) ? l.pad.lon : -80.6;
-  const d = new Date(l.net);
-  const month = d.getUTCMonth();
-  const localHour = ((d.getUTCHours() + Math.round(lon / 15)) % 24 + 24) % 24;
-  const r = hash01(l.id + '::sky'), r2 = hash01(l.id + '::wind');
-  const absLat = Math.abs(lat);
-  let wet = absLat < 23 ? 0.55 : absLat < 35 ? 0.42 : absLat < 45 ? 0.34 : 0.28;   // climate baseline by latitude band
-  const summer = lat >= 0 ? (month >= 4 && month <= 8) : (month <= 2 || month >= 10);
-  if (summer && absLat < 38) wet += 0.14;                                          // subtropical wet season
-  if (summer && absLat < 35 && localHour >= 13 && localHour <= 19) wet += 0.12;     // afternoon convective storms
-  if (absLat > 55) wet += 0.08;                                                    // high-latitude frontal systems
-  wet = Math.min(0.95, Math.max(0.04, wet + (r - 0.5) * 0.34));                     // per-launch variation
-  const precip = Math.round(wet * 100);
-  const cloud = Math.round(Math.min(100, Math.max(0, wet * 88 + (r2 - 0.5) * 42)));
-  const wind = Math.round(5 + r2 * 22 + (absLat > 45 ? 7 : 0));
-  const sky = cloud < 25 ? 'Clear' : cloud < 55 ? 'Partly cloudy' : cloud < 80 ? 'Mostly cloudy' : 'Overcast';
-  const condition = precip > 60 ? 'Storms likely' : precip > 35 ? 'Showers possible' : wind > 26 ? 'High winds' : sky;
-  return { precip, cloud, wind, sky, condition };
-}
-// synthesized go-probability — an ESTIMATE from track record + launch window + a
-// live-or-modeled weather outlook. Varies per launch; never an official forecast.
-function goCall(l) {
-  const chips = [];
-  let p = 76;
-  const flown = S.past.filter(x => x.vehicle === l.vehicle);
-  const wins = flown.filter(x => x.status === 'success').length;
-  if (flown.length >= 2) {
-    const rate = wins / flown.length;
-    p = 60 + Math.round(rate * 28);
-    chips.push(rate === 1 ? `${flown.length}/${flown.length} clean record` : `${wins}/${flown.length} track record`);
-  } else if (l.status === 'tbd' || /test|demo|first flight|maiden|return to sender/i.test(`${l.name || ''} ${l.payloadInfo || ''}`)) {
-    p = 50; chips.push('developmental flight');
-  } else {
-    chips.push('veteran-class vehicle');
-  }
-  // weather: prefer the live API forecast, else the per-launch climate model
-  const live = !!l.weather;
-  let sky, wind, precip = null, cond;
-  if (live) {
-    sky = l.weather.summary || l.weather.condition || 'Reported';
-    wind = Number.isFinite(l.weather.windMph) ? l.weather.windMph : null;
-    precip = Number.isFinite(l.weather.precip) ? l.weather.precip : null;   // real forecast precip when present
-    cond = `${l.weather.summary || ''} ${l.weather.condition || ''}`.trim();
-  } else {
-    const fc = modelForecast(l); sky = fc.sky; wind = fc.wind; precip = fc.precip; cond = fc.condition;
-  }
-  if (precip != null) p -= Math.round(precip * 0.3);                     // modeled precip risk: up to −28
-  const cl = cond.toLowerCase();
-  if (/storm|thunder|rain|shower|snow/.test(cl)) p -= 8;
-  else if (/clear|sunny|fair/.test(cl)) p += 7;
-  if (wind != null) { if (wind > 26) p -= 11; else if (wind > 18) p -= 5; else if (wind < 10) p += 3; }
-  const win = (Number.isFinite(l.windowEnd) && Number.isFinite(l.windowStart)) ? (l.windowEnd - l.windowStart) / MIN : 120;
-  if (win >= 180) { p += 6; chips.push(`wide ${Math.round(win / 60)} h window`); }
-  else if (win <= 15) { p -= 9; chips.push('instantaneous window'); }
-  const dn = dayNight(l); if (dn) chips.push(dn);
-  if (l.status === 'tbd') p = Math.min(p, 66);
-  // if the feed carries an OFFICIAL probability (LL2), use it verbatim and label it so
-  const official = Number.isFinite(l.probability);
-  const pct = official ? Math.max(0, Math.min(100, Math.round(l.probability))) : Math.max(8, Math.min(97, Math.round(p)));
-  const verdict = pct >= 80 ? 'Likely go' : pct >= 60 ? 'Probable' : pct >= 40 ? 'Uncertain' : 'At risk';
-  const tag = !live ? 'Modeled' : (precip != null ? 'Forecast' : 'Reported');
-  const outlook = live
-    ? `${sky}${wind != null ? ` · ${wind} mph` : ''}${precip != null ? ` · ${precip}% precip` : ''}`
-    : `${sky} · ${wind} mph · ${precip}% precip`;
-  return { pct, verdict, chips: chips.slice(0, 4), outlook, live, official, tag };
-}
-// facts derived live from the tracked dataset (S.ordered = chronological across past+upcoming)
-function histContext(l) {
-  const facts = [], ord = S.ordered;
-  const sameVeh = ord.filter(x => x.vehicle === l.vehicle);
-  const vIdx = sameVeh.findIndex(x => x.id === l.id);
-  facts.push({ k: 'Vehicle', v: sameVeh.length === 1 ? 'Only tracked flight' : `Flight ${vIdx + 1} of ${sameVeh.length} tracked` });
-  const sameProv = ord.filter(x => x.provider === l.provider);
-  const pIdx = sameProv.findIndex(x => x.id === l.id);
-  if (pIdx > 0) facts.push({ k: 'Cadence', v: `${Math.max(1, Math.round((l.net - sameProv[pIdx - 1].net) / DAY))} d after ${l.provider}'s last` });
-  else facts.push({ k: 'Cadence', v: `First ${l.provider} flight tracked` });
-  const bm = /flight\s*(\d+)/i.exec(l.booster || '');
-  if (bm && +bm[1] > 1) facts.push({ k: 'Booster', v: `Core reflight #${bm[1]}` });
-  const d = new Date(l.net);
-  const twins = ord.filter(x => x.id !== l.id && new Date(x.net).getDate() === d.getDate() && new Date(x.net).getMonth() === d.getMonth());
-  if (twins.length) facts.push({ k: 'On this day', v: `${twins.length} other tracked launch${twins.length > 1 ? 'es' : ''}` });
-  return facts.slice(0, 4);
-}
-// live launches carry no payload/customer from the free API tier — derive a sensible
-// manifest from the mission name so common constellations never read "Not disclosed".
-function derivePayload(l) {
-  if (l.payloadInfo) return l.payloadInfo;
-  const n = l.name || '';
-  if (/starlink/i.test(n)) return 'Starlink v2 Mini batch';
-  if (/kuiper/i.test(n)) return 'Project Kuiper batch';
-  if (/oneweb/i.test(n)) return 'OneWeb satellites';
-  if (/transporter|bandwagon|rideshare/i.test(n)) return 'Smallsat rideshare';
-  if (/progress|cygnus|dragon|cargo|htv|tianzhou/i.test(n)) return 'Station cargo';
-  const mm = /^([A-Za-z0-9][\w-]*)/.exec(n.trim());
-  return mm ? `${mm[1]} payload` : null;
-}
-function deriveCustomer(l) {
-  if (l.customer) return l.customer;
-  const n = l.name || '';
-  if (/starlink/i.test(n)) return 'SpaceX';
-  if (/kuiper/i.test(n)) return 'Amazon';
-  if (/oneweb/i.test(n)) return 'Eutelsat OneWeb';
-  return l.provider || null;
-}
-function manifestInner(l) {
-  if (l.crew && l.crew.length) {
-    return `<div class="brief-crew">${l.crew.map(c =>
-      `<div class="crew-row"><span class="crew-name">${esc(c.name)}</span><span class="crew-role">${esc(c.role)}${c.agency ? ' · ' + esc(c.agency) : ''}</span></div>`).join('')}</div>`;
-  }
-  const rows = [];
-  const payload = derivePayload(l), customer = deriveCustomer(l);
-  if (payload) rows.push(['Payload', payload]);
-  if (customer) rows.push([l.customer ? 'Customer' : 'Operator', customer]);
-  if (l.orbit && rows.length < 2) rows.push(['Destination', l.orbit]);
-  return rows.map(([k, v]) => `<div class="m-row"><span class="m-key">${k}</span><span class="m-val">${esc(v)}</span></div>`).join('');
-}
-function briefingHTML(l) {
-  const oi = ORBIT_INFO[orbitBand(l.orbit)];
-  let goCard;
-  if (l.isPast) {
-    const m = stMeta(l.status);
-    goCard = `<div class="brief-card">
-      <div class="brief-h">◉ Result</div>
-      <div class="brief-verdict" style="color:${STATUS_COLOR[l.status] || 'var(--text)'}">${esc(m.short)}</div>
-      <div class="brief-note">As flown · outcome on record</div>
-    </div>`;
-  } else {
-    const g = goCall(l);
-    goCard = `<div class="brief-card">
-      <div class="brief-h">◉ Go Call <span class="brief-est${g.official ? ' official' : ''}">${g.official ? 'official' : 'estimate'}</span></div>
-      <div class="gauge-num">${g.pct}<small>%</small></div>
-      <div class="gauge"><div class="gauge-fill" style="transform:scaleX(${g.pct / 100})"></div></div>
-      <div class="brief-verdict">${esc(g.verdict)}</div>
-      <div class="brief-outlook"><span class="ol-tag">${g.tag}</span>${esc(g.outlook)}</div>
-      <div class="brief-chips">${g.chips.map(c => `<span class="brief-chip">${esc(c)}</span>`).join('')}</div>
-    </div>`;
-  }
-  const isCrew = l.crew && l.crew.length;
-  const manCard = `<div class="brief-card">
-    <div class="brief-h">◉ Manifest${isCrew ? ` <span class="brief-est crew">${l.crew.length} crew</span>` : ''}</div>
-    ${manifestInner(l)}
-  </div>`;
-  const orbCard = `<div class="brief-card">
-    <div class="brief-h">◉ Orbit Neighborhood</div>
-    <div class="brief-band">${esc(oi.band)}</div>
-    <div class="alt-scale" role="img" aria-label="Altitude band ${esc(oi.alt)}"><div class="alt-mark" style="left:${Math.round(oi.pos * 100)}%"></div></div>
-    <div class="alt-labels"><span>LEO</span><span>MEO</span><span>GEO</span></div>
-    <div class="m-row"><span class="m-key">Altitude</span><span class="m-val">${esc(oi.alt)}</span></div>
-    <div class="m-row"><span class="m-key">Traffic ≈</span><span class="m-val">${esc(oi.count)}</span></div>
-    <div class="brief-chips">${oi.notables.map(n => `<span class="brief-chip">${esc(n)}</span>`).join('')}</div>
-  </div>`;
-  const ctxCard = `<div class="brief-card">
-    <div class="brief-h">◉ In Context</div>
-    ${histContext(l).map(f => `<div class="m-row"><span class="m-key">${esc(f.k)}</span><span class="m-val">${esc(f.v)}</span></div>`).join('')}
-  </div>`;
-  return `<section class="brief">
-    <div class="brief-title">◉ Mission Briefing</div>
-    <div class="brief-grid">${goCard}${manCard}${orbCard}${ctxCard}</div>
-  </section>`;
-}
-/* ════════════════════════════════════════════════════════════════
-   §12e · LIVE ENRICHMENTS — Open-Meteo forecast, Wikipedia blurbs,
-   local day/night. All optional and cached; every one degrades to the
-   prior behaviour (modeled outlook / static blurb) if unreachable.
-   ════════════════════════════════════════════════════════════════ */
-const FORECAST = new Map();     // launch id → wx object | 'pending' | 'none'
-async function loadForecast(l) {
-  if (!l || l.isPast || FORECAST.has(l.id)) return;
-  if (!Number.isFinite(l.pad?.lat) || !Number.isFinite(l.pad?.lon) || !Number.isFinite(l.net)) return;
-  const days = (l.net - Date.now()) / DAY;
-  if (days < 0 || days > 15.5) return;                  // beyond Open-Meteo's horizon → keep the modeled outlook
-  FORECAST.set(l.id, 'pending');
-  const cached = cacheGet('fc-' + l.id, WX_TTL);
-  if (cached) return applyForecast(l, cached);
-  try {
-    const j = await fetchJSON(API.meteo(l.pad.lat.toFixed(3), l.pad.lon.toFixed(3)), 7000);
-    const h = j.hourly;
-    if (!h || !Array.isArray(h.time)) throw new Error('no hourly');
-    const target = Math.round(l.net / 1000);
-    let bi = 0, bd = Infinity;
-    for (let i = 0; i < h.time.length; i++) { const d = Math.abs(h.time[i] - target); if (d < bd) { bd = d; bi = i; } }
-    const cloud = Math.round(h.cloud_cover?.[bi] ?? 0);
-    const wx = {
-      tempF: Math.round(h.temperature_2m?.[bi]),
-      precip: Math.round(h.precipitation_probability?.[bi] ?? 0),
-      windMph: Math.round(h.wind_speed_10m?.[bi] ?? 0),
-      sky: cloud < 25 ? 'Clear' : cloud < 55 ? 'Partly cloudy' : cloud < 80 ? 'Mostly cloudy' : 'Overcast',
-    };
-    wx.condition = wx.precip > 60 ? 'Storms likely' : wx.precip > 35 ? 'Showers possible' : wx.windMph > 26 ? 'High winds' : wx.sky;
-    cacheSet('fc-' + l.id, wx);
-    applyForecast(l, wx);
-  } catch { FORECAST.set(l.id, 'none'); }
-}
-function applyForecast(l, wx) {
-  FORECAST.set(l.id, wx);
-  l.weather = { summary: wx.sky, condition: wx.condition, tempF: wx.tempF, windMph: wx.windMph, precip: wx.precip };
-  if (MODAL.openId === l.id && $('#m-content')) renderModal(l);   // refresh the open dossier's Go Call
-  if (S.heroLaunch && S.heroLaunch.id === l.id) renderHero();
-}
-/* local solar-elevation (no API needed): day / twilight / night at the pad at T-0 */
-function sunAltitude(lat, lon, date) {
-  const rad = Math.PI / 180;
-  const n = date.getTime() / 86400000 + 2440587.5 - 2451545.0;
-  const L = (280.460 + 0.9856474 * n) % 360;
-  const g = ((357.528 + 0.9856003 * n) % 360) * rad;
-  const lambda = (L + 1.915 * Math.sin(g) + 0.020 * Math.sin(2 * g)) * rad;
-  const eps = 23.439 * rad;
-  const decl = Math.asin(Math.sin(eps) * Math.sin(lambda));
-  const gmst = (18.697374558 + 24.06570982441908 * n) % 24;
-  const ra = Math.atan2(Math.cos(eps) * Math.sin(lambda), Math.cos(lambda)) / rad / 15;
-  const ha = ((gmst + lon / 15 - ra) * 15) * rad;
-  const latR = lat * rad;
-  return Math.asin(Math.sin(latR) * Math.sin(decl) + Math.cos(latR) * Math.cos(decl) * Math.cos(ha)) / rad;
-}
-function dayNight(l) {
-  if (!Number.isFinite(l.pad?.lat) || !Number.isFinite(l.pad?.lon) || !Number.isFinite(l.net)) return null;
-  const alt = sunAltitude(l.pad.lat, l.pad.lon, new Date(l.net));
-  return alt < -6 ? 'night launch' : alt < 6 ? 'twilight launch' : 'day launch';
-}
-/* Wikipedia REST summaries for the Companies tab (text only — the CDN
-   thumbnails are on the blocked wikimedia host, so we take just the extract) */
-const WIKI = new Map();          // title → { extract } | 'pending' | 'none'
-const PROVIDER_WIKI = {
-  'ULA': 'United Launch Alliance', 'CNSA': 'China National Space Administration',
-  'ISRO': 'Indian Space Research Organisation', 'JAXA': 'Japan Aerospace Exploration Agency',
-  'Roscosmos': 'Roscosmos', 'ESA': 'European Space Agency',
-};
-async function loadWiki(name, slotId) {
-  const title = PROVIDER_WIKI[name] || name;
-  if (!title) return;
-  const done = data => fillWiki(slotId, data);
-  if (WIKI.has(title)) return done(WIKI.get(title));
-  WIKI.set(title, 'pending');
-  const key = 'wiki-' + title.toLowerCase().replace(/\s+/g, '_');
-  const cached = cacheGet(key, 24 * HOUR);
-  if (cached) { WIKI.set(title, cached); return done(cached); }
-  try {
-    const j = await fetchJSON(API.wiki(title), 7000);
-    const data = (j && j.extract && j.type !== 'disambiguation') ? { extract: j.extract } : 'none';
-    WIKI.set(title, data);
-    if (data !== 'none') cacheSet(key, data);
-    done(data);
-  } catch { WIKI.set(title, 'none'); }
-}
-function fillWiki(slotId, data) {
-  const el = document.getElementById(slotId);
-  if (!el || !data || data === 'none' || data === 'pending') return;
-  const sentence = (data.extract.split(/(?<=\.)\s/)[0] || data.extract).trim();
-  el.textContent = sentence.length > 200 ? sentence.slice(0, 197).trimEnd() + '…' : sentence;
-  el.classList.add('has-wiki');
-}
 function renderModal(l) {
   if (FEED.mode === 'inline' && FEED.launchId !== l.id) {   // navigating away kills the inline player
     FEED.mode = null; FEED.launchId = null; FEED.video = null;
@@ -3725,7 +3202,6 @@ function renderModal(l) {
         <button class="m-action" data-ics="${esc(l.id)}" aria-label="Add ${esc(l.name)} to calendar">＋ Add to Calendar</button>
       </div>
       ${l.description ? `<p class="m-desc">${esc(l.description)}</p>` : ''}
-      ${briefingHTML(l)}
       ${showCd ? `<div class="m-cd-wrap" id="m-cd-wrap"><div class="cd-caption">T-Minus</div>${cdHTML('cd-modal')}</div>` : ''}
       <div id="feed-slot">${feedSectionHTML(l)}</div>
       <div class="m-grid">
@@ -3767,17 +3243,7 @@ function renderModal(l) {
             <div class="m-row"><span class="m-key">Outcome</span><span class="m-val">${l.isPast ? esc(m.label) : 'PENDING'}</span></div>
             <div class="m-row"><span class="m-key">Tracked</span><span class="m-val">${idx + 1} / ${S.ordered.length}</span></div>`}
         </div>
-        ${hasCoords ? `<div class="locator-wrap"><div class="m-sec-label">Pad Locator</div>
-          <div class="loc-map">
-            <canvas class="locator" id="m-locator" width="640" height="150" role="img" aria-label="Interactive locator map: ${esc(txt(l.pad.name))} at latitude ${l.pad.lat.toFixed(2)}, longitude ${l.pad.lon.toFixed(2)}. Drag to pan, scroll to zoom."></canvas>
-            <div class="loc-ctrls">
-              <button type="button" class="loc-btn" data-loc="in" aria-label="Zoom in">＋</button>
-              <button type="button" class="loc-btn" data-loc="out" aria-label="Zoom out">－</button>
-              <button type="button" class="loc-btn" data-loc="reset" aria-label="Recenter on pad">◎</button>
-            </div>
-            <div class="loc-read" id="loc-read" aria-hidden="true"></div>
-          </div>
-        </div>` : ''}
+        ${hasCoords ? `<div class="locator-wrap"><div class="m-sec-label">Pad Locator</div><canvas class="locator" id="m-locator" width="640" height="150" role="img" aria-label="World locator map: pad at latitude ${l.pad.lat.toFixed(2)}, longitude ${l.pad.lon.toFixed(2)}"></canvas></div>` : ''}
       </div>
       <div class="m-nav">
         <button class="m-nav-btn" id="m-prev" data-mstep="-1" ${prev ? '' : 'disabled'}>← <span class="mn-name">${prev ? esc(prev.name) : 'START'}</span></button>
@@ -3794,138 +3260,42 @@ function renderModal(l) {
   }
   if (hasCoords) drawLocator($('#m-locator'), l.pad.lat, l.pad.lon);
   if (FEED.mode === 'inline' && FEED.launchId === l.id) playFeedInline(l.id);   // re-mount after re-render
-  loadForecast(l);                                    // fetch a real forecast for near-term launches (upgrades the Go Call)
 }
 /* Equirectangular telemetry-style locator: graticule + glowing pad fix */
-/* Interactive pad locator — an offline vector map (embedded, simplified
-   coastlines; no map tiles, so it survives file://'s null origin). Drag
-   to pan, wheel / ＋－ to zoom (toward cursor), hover for a live lat/lon
-   readout, ◎ or double-click recenters on the pad. State lives on the
-   canvas element (canvas._loc); a fresh dossier render makes a fresh map. */
-const WORLD_LAND = [[[107,77],[114.1,75.8],[109.4,74.2],[123.2,73],[123.3,73.7],[127,73.6],[131.3,70.8],[132.3,71.8],[139.9,71.5],[139.1,72.4],[140.5,72.8],[159,70.9],[160.9,69.4],[167.8,69.6],[169.6,68.7],[170.8,69],[170.5,70.1],[178.6,69.4],[180,69],[180,65],[177.4,64.6],[179.5,62.6],[173.7,61.7],[170.3,59.9],[163.5,59.9],[162,58.2],[163.2,57.6],[162.1,54.9],[156.8,51],[155.9,56.8],[163.7,61.1],[164.5,62.6],[160.1,60.5],[159.3,61.8],[156.7,61.4],[154.2,59.8],[155,59.1],[142.2,59],[135.1,54.7],[139.9,54.2],[141.4,52.2],[138.2,46.3],[134.9,43.4],[132.3,43.3],[127.5,39.8],[129.5,36.8],[129.1,35.1],[126.5,34.4],[126.1,36.7],[126.9,36.9],[124.7,38.1],[125.3,39.6],[121.1,38.9],[121.6,40.9],[118,39.2],[118.9,37.4],[122.4,37.5],[119.2,34.9],[121.9,31.7],[121.7,28.2],[115.9,22.8],[110.8,21.4],[110.4,20.3],[108.5,21.7],[105.9,19.8],[109.3,13.4],[109.2,11.7],[105.2,8.6],[105.1,9.9],[100.1,13.4],[99.2,9.2],[103,5.5],[104.2,1.3],[101.4,2.8],[100.1,6.5],[98.3,7.8],[98.8,11.4],[97.2,16.9],[94.2,16],[94.3,18.2],[91.4,22.8],[87,21.5],[86.5,20.2],[80.3,15.9],[79.9,10.4],[77.5,8],[73.5,16],[72.6,21.4],[70.5,20.9],[66.4,25.4],[57.4,25.7],[56.5,27.1],[54.7,26.5],[51.5,27.9],[50.1,30.1],[48,30],[50.8,24.8],[51.6,25.8],[51.8,24],[54,24.1],[56.4,26.4],[56.8,24.2],[59.8,22.3],[55.3,17.2],[43.5,12.6],[42.6,16.8],[34.6,28.1],[34.9,29.5],[33.9,27.6],[32.4,29.9],[36.9,22],[37.5,18.6],[43.3,12.4],[42.7,11.7],[44.6,10.4],[51.1,12],[51,10.6],[47.7,4.2],[39.2,-4.7],[40.8,-14.7],[34.8,-19.8],[35.6,-23.7],[32.6,-25.7],[32.2,-28.8],[25.8,-33.9],[19.6,-34.8],[18.4,-34.1],[18.2,-31.7],[15.2,-27.1],[14.3,-22.1],[11.8,-18.1],[13.7,-10.7],[11.9,-5],[8.8,-1.1],[9.4,3.7],[8.5,4.8],[5.9,4.3],[4.3,6.3],[-2,4.7],[-9,4.8],[-16.6,12.2],[-17.6,14.7],[-16.1,18.1],[-17,21.9],[-14.4,26.3],[-9.6,29.9],[-9.3,32.6],[-5.9,35.8],[-2.2,35.2],[1.5,36.6],[9.5,37.4],[11.1,36.9],[10.3,33.8],[19.1,30.3],[21.5,32.8],[28.9,30.9],[33.8,31],[36.2,36.7],[27.6,36.7],[26.2,39.5],[33.5,42],[38.3,40.9],[41.7,42],[36.7,45.2],[39.1,47.3],[35,46.3],[36.3,45.1],[33.9,44.4],[32.5,45.3],[33.3,46.1],[30.7,46.6],[27.7,42.6],[28.8,41.1],[22.6,40.3],[24,37.7],[23.1,37.9],[22.5,36.4],[19.4,40.3],[19.5,41.7],[13.1,45.7],[12.6,44.1],[18.5,40.2],[16.9,40.4],[16.1,38],[15.4,40],[8.9,44.4],[3.1,43.1],[3,41.9],[0.8,41],[0.1,38.7],[-2.1,36.7],[-5.4,35.9],[-8.9,36.9],[-9.4,43],[-1.4,44],[-1.2,46],[-4.6,48.7],[-1.6,48.6],[-1.9,49.8],[1.3,50.1],[4.7,53.1],[8.1,53.5],[8.5,57.1],[10.6,57.7],[10.9,56.5],[9.7,55.5],[10.9,54],[19.7,54.4],[21.3,55.2],[21.6,57.4],[24.1,57],[24.4,58.4],[23.3,59.2],[29.1,60],[22.9,59.8],[21.3,60.7],[21.5,63.2],[25.4,65.1],[22.2,65.7],[17.8,62.7],[17.1,61.3],[18.8,60.1],[16.8,58.7],[15.9,56.1],[12.9,55.4],[10.4,59.5],[8.4,58.3],[5.7,58.6],[5,62],[14.8,67.8],[24.5,71],[28.2,71.2],[31.3,70.5],[30,70.2],[31.1,69.6],[40.3,67.9],[41.1,66.8],[40,66.3],[33.2,66.6],[34.8,65.9],[34.9,64.4],[37,63.8],[37.2,65.1],[39.6,64.5],[42.1,66.5],[43.9,66.1],[44.5,66.8],[43.5,68.6],[46.3,68.3],[46.8,67.7],[45.6,67],[46.3,66.7],[53.7,68.9],[59.9,68.3],[61.1,68.9],[60.6,69.9],[68.5,68.1],[69.2,68.6],[66.9,69.5],[66.7,71],[69.2,72.8],[72.6,72.8],[71.8,71.4],[73.7,68.4],[71.3,66.3],[72.4,66.2],[75.1,67.8],[73.6,69.6],[74.4,70.6],[73.1,71.4],[74.7,72.8],[76.4,71.2],[75.9,71.9],[77.6,72.3],[81.5,71.8],[80.5,73.6],[104.7,77.1],[107,77]],[[-58.6,-64.2],[-62,-64.8],[-62.1,-66.2],[-65.7,-68],[-61.8,-70.7],[-60.8,-73.7],[-70.6,-76.6],[-77.2,-76.7],[-73.7,-77.9],[-77.9,-78.4],[-78,-79.2],[-58.2,-83.2],[-28.5,-80.3],[-29.7,-79.3],[-35.6,-79.5],[-35.3,-78.1],[-17.5,-75.1],[-15.7,-74.5],[-16.5,-73.9],[-15.4,-73.1],[-6.9,-70.9],[-0.2,-71.6],[7.7,-69.9],[10.8,-70.8],[13.4,-70],[27.1,-70.5],[33.9,-68.5],[38.6,-69.8],[54.5,-65.8],[61.4,-68],[68.9,-67.9],[69.7,-69.2],[67.8,-70.3],[69.1,-70.7],[67.9,-71.9],[69.9,-72.3],[73.9,-69.9],[88,-66.2],[95.8,-67.4],[99.7,-67.2],[102.8,-65.6],[106.2,-66.9],[113.6,-65.9],[119.8,-67.3],[134.8,-66.2],[135.1,-65.3],[137.5,-67],[145.5,-66.9],[148.8,-68.4],[171.2,-71.7],[169.3,-73.7],[163.6,-76.2],[164.7,-78.2],[167,-78.8],[161.8,-79.2],[159.8,-80.9],[169.4,-83.8],[180,-84.7],[180,-90],[-180,-90],[-180,-84.7],[-179.1,-84.1],[-170,-83.9],[-158.1,-85.4],[-143.1,-85],[-153.6,-83.7],[-152.9,-82],[-156.8,-81.1],[-146.4,-80.3],[-155.3,-79.1],[-158.1,-78],[-158.4,-76.9],[-151.3,-77.4],[-146.1,-76.5],[-146.2,-75.4],[-144.9,-75.2],[-113.9,-73.7],[-112.3,-74.7],[-100.6,-75.3],[-103.7,-72.6],[-74.9,-73.9],[-67.4,-72.5],[-68.5,-69.7],[-67.3,-66.9],[-63,-64.6],[-57.6,-63.9],[-58.6,-64.2]],[[-90.5,69.5],[-90.6,68.5],[-89.2,69.3],[-87.4,67.2],[-85.5,69.9],[-82.6,69.7],[-81.3,69.2],[-81.3,67.6],[-85.8,66.6],[-87.3,64.8],[-93.2,62],[-94.7,58.9],[-93.2,58.8],[-92.3,57.1],[-82.3,55.1],[-82.1,53.3],[-79.9,51.2],[-78.6,52.6],[-79.8,54.7],[-76.5,56.5],[-78.5,58.8],[-77.3,59.9],[-78.1,62.3],[-73.8,62.4],[-69.6,61.1],[-69.3,59],[-67.6,58.2],[-64.6,60.3],[-61.8,56.3],[-57.3,54.6],[-55.7,52.1],[-60,50.2],[-66.4,50.2],[-71.1,46.8],[-65.1,49.2],[-64.2,48.7],[-65.1,48.1],[-64.5,46.2],[-61.5,45.9],[-60.5,47],[-59.8,45.9],[-65.4,43.5],[-66.2,44.5],[-64.4,45.3],[-67.1,45.1],[-70.7,43],[-70,41.6],[-73.7,40.9],[-71.9,40.9],[-74,40.8],[-74.9,38.9],[-75.5,39.5],[-75.9,37.2],[-76.3,39.2],[-77,38.2],[-75.7,35.6],[-81.3,31.4],[-80.4,25.2],[-84.1,30.1],[-89.2,30.3],[-90.2,29.1],[-93.8,29.7],[-96.6,28.3],[-97.9,22.4],[-96.3,19.3],[-94.4,18.1],[-92,18.7],[-90.3,21],[-87.1,21.5],[-88.9,15.9],[-83.4,15.3],[-83.8,11.1],[-81.4,8.8],[-79.6,9.6],[-76.8,8.6],[-74.9,11.1],[-71.8,12.4],[-71.7,9.1],[-69.9,12.2],[-68.2,10.6],[-61.9,10.7],[-62.4,9.9],[-57.1,6],[-54,5.8],[-51.3,4.2],[-50,1.7],[-50.4,-0.1],[-44.9,-1.6],[-44.6,-2.7],[-40,-2.9],[-35.6,-5.1],[-34.7,-7.3],[-38.7,-13.1],[-40.9,-21.9],[-47.6,-24.9],[-48.9,-28.7],[-53.8,-34.4],[-56.2,-34.9],[-58.4,-33.9],[-56.8,-36.9],[-59.2,-38.7],[-62.3,-38.8],[-62.7,-41],[-65.1,-41.1],[-63.5,-42.6],[-67.3,-45.6],[-67.6,-46.3],[-65.6,-47.2],[-66,-48.1],[-69.1,-50.7],[-68.2,-52.3],[-70.8,-52.9],[-71,-53.8],[-74.9,-52.3],[-75.6,-48.7],[-74.1,-46.9],[-75.6,-46.6],[-74.4,-44.1],[-73.2,-44.5],[-72.7,-42.4],[-74.3,-43.2],[-73.6,-37.2],[-71.4,-32.4],[-70.2,-19.8],[-71.5,-17.4],[-76,-14.6],[-79.8,-7.2],[-81.2,-6.1],[-79.8,-2.7],[-81,-2.2],[-80.9,-1.1],[-77.1,3.8],[-78.2,8.3],[-79.6,8.9],[-80.9,7.2],[-85.7,9.9],[-87.5,13.3],[-103.5,18.3],[-105.5,19.9],[-106,22.8],[-113.9,31.6],[-114.8,31.8],[-114.7,30.2],[-109.4,23.4],[-110,22.8],[-112.2,24.7],[-112.3,26],[-115.1,27.7],[-114.2,28.6],[-117.3,33],[-120.6,34.6],[-124.4,40.3],[-124.7,48.2],[-122.6,47.1],[-122.8,49],[-127.4,50.8],[-127.9,52.3],[-134.1,58.1],[-147.1,60.9],[-151.7,59.2],[-150.6,61.3],[-158.4,56],[-164.8,54.4],[-157.7,57.6],[-157,58.9],[-162,58.7],[-161.9,59.6],[-166.1,61.5],[-164.6,63.1],[-160.8,63.8],[-161.5,64.4],[-160.8,64.8],[-165,64.4],[-168.1,65.7],[-161.7,66.1],[-166.8,68.4],[-156.6,71.4],[-136.5,68.9],[-128.1,70.5],[-108.9,67.4],[-107.8,67.9],[-108.8,68.3],[-108.2,68.7],[-106.2,68.8],[-101.5,67.6],[-97.7,68.6],[-96.1,68.2],[-96.1,67.3],[-94.2,69.1],[-96.5,70.1],[-95.2,71.9],[-92.9,71.3],[-91.5,70.2],[-92.4,69.7],[-90.5,69.5]],[[143.6,-13.8],[145.4,-15],[146.4,-19],[148.8,-20.4],[153.1,-26.1],[152.9,-31.6],[150,-37.4],[146.3,-39],[145,-37.9],[143.6,-38.8],[140.6,-38],[138.1,-35.6],[138.2,-34.4],[136.8,-35.3],[137.8,-32.9],[136,-34.9],[134.3,-32.6],[131.3,-31.5],[118,-35.1],[115,-34.2],[115.7,-31.6],[113.3,-26.1],[114.2,-26.3],[113.4,-24.4],[114.1,-21.8],[114.2,-22.5],[120.9,-19.7],[125.7,-14.2],[129.6,-15],[130.6,-12.5],[132.6,-12.1],[131.8,-11.3],[136.5,-11.9],[135.5,-15],[140.2,-17.7],[142.1,-11],[143.6,-13.4],[143.6,-13.8]],[[-27.1,83.5],[-20.8,82.7],[-31.4,82],[-12.2,81.3],[-20,80.2],[-17.7,80.1],[-19.7,78.8],[-18.5,77],[-21.7,76.6],[-19.8,76.1],[-19.6,75.2],[-20.7,75.2],[-19.4,74.3],[-23.6,73.3],[-22.3,72.2],[-24.8,72.3],[-21.8,70.7],[-25.5,71.4],[-26.4,70.2],[-22.3,70.1],[-39.8,65.5],[-42.8,62.7],[-43.4,60.1],[-48.3,60.9],[-51.6,63.6],[-54,67.2],[-50.9,69.9],[-54.7,69.6],[-54.4,70.8],[-51.4,70.6],[-55.8,71.7],[-54.7,72.6],[-58.6,75.5],[-68.5,76.1],[-71.4,77],[-66.8,77.4],[-73.3,78],[-65.7,79.4],[-68,80.1],[-62.7,81.8],[-50.4,82.4],[-44.5,81.7],[-46.8,82.6],[-35.1,83.6],[-27.1,83.5]],[[-86.6,73.2],[-85.8,72.5],[-82.3,73.8],[-80.7,72.1],[-77.8,72.7],[-72.2,71.6],[-67.9,70.1],[-67,69.2],[-68.8,68.7],[-61.9,66.9],[-63.9,65],[-68,66.3],[-64.7,63.4],[-65,62.7],[-68.8,63.7],[-66.2,61.9],[-74.8,64.7],[-77.7,64.2],[-78.6,64.6],[-77.9,65.3],[-74,65.5],[-72.9,67.7],[-79,70.2],[-89.5,70.8],[-88.5,71.2],[-89.9,71.2],[-89.4,73.1],[-85.8,73.8],[-86.6,73.2]],[[-68.5,83.1],[-61.9,82.4],[-76.9,79.3],[-75.4,78.5],[-80.6,76.2],[-89.5,76.5],[-87.8,77.2],[-88.3,77.9],[-85,77.5],[-88,78.4],[-85.1,79.3],[-86.9,80.3],[-81.8,80.5],[-87.6,80.5],[-91.6,81.9],[-70.7,83.2],[-68.5,83.1]],[[134.1,-1.2],[135.5,-3.4],[138.3,-1.7],[144.6,-3.9],[147.6,-6.1],[147.2,-7.4],[150.7,-10.6],[147.9,-10.1],[144.7,-7.6],[142.6,-9.3],[137.6,-8.4],[138.7,-7.3],[137.9,-5.4],[133.7,-3.5],[133,-4.1],[132,-2.8],[133.7,-2.2],[130.5,-0.9],[134,-0.8],[134.1,-1.2]],[[117.9,1.8],[119,0.9],[117.8,0.8],[116.1,-4],[110.2,-2.9],[109.1,-0.5],[109.7,2],[113,3.1],[116.7,6.9],[119.2,5.4],[117.3,3.2],[118,2.3],[117.9,1.8]],[[-114.2,73.1],[-109.9,73],[-108.2,71.7],[-108.4,73.1],[-106.5,73.1],[-101.1,69.6],[-102.7,69.5],[-102.4,68.8],[-116.1,69.2],[-117.3,70],[-112.4,70.4],[-117.9,70.5],[-116.1,71.3],[-119.4,71.6],[-115.2,73.3],[-114.2,73.1]],[[50.1,-13.6],[50.4,-15.7],[47.1,-24.9],[44,-25],[43.3,-22.1],[44.4,-20.1],[44.4,-16.2],[47.7,-14.6],[49.2,-12],[49.8,-12.9],[50.1,-13.6]],[[105.8,-5.9],[102.6,-4.2],[95.3,5.5],[97.5,5.2],[102.5,1.4],[106.1,-3.1],[105.9,-4.3],[105.8,-5.9]],[[141,37.1],[140.3,35.1],[135.8,33.5],[135.1,34.6],[131,33.9],[132,33.1],[131.3,31.5],[130.2,31.4],[129.4,33.3],[132.6,35.4],[135.7,35.5],[136.7,37.3],[139.4,38.2],[140.3,41.2],[141.4,41.4],[141.9,40],[141,38.2],[141,37.1]],[[-3,58.6],[-4.1,57.6],[-2,57.7],[-3.1,56],[1.7,52.7],[1.4,51.3],[-5.2,50],[-3.4,51.4],[-5.3,52],[-4.2,52.3],[-4.6,53.5],[-2.9,54],[-5.6,55.3],[-6.1,56.8],[-4.2,58.6],[-3,58.6]],[[-120.5,71.4],[-123.1,70.9],[-125.9,71.9],[-123.9,73.7],[-124.9,74.3],[-121.5,74.4],[-115.5,73.5],[-120.5,71.8],[-120.5,71.4]],[[57.5,70.7],[51.6,71.5],[55.6,75.1],[68.9,76.5],[58.5,74.3],[55.4,72.4],[55.6,71.5],[57.5,70.7]],[[-14.5,66.5],[-13.6,65.1],[-18.7,63.5],[-22.8,64],[-21.8,64.4],[-24,64.9],[-22.2,65.4],[-24.3,65.6],[-16.2,66.5],[-14.5,66.5]],[[-175,66.6],[-169.9,66],[-172.5,65.4],[-173,64.3],[-178.7,66.1],[-180,65],[-180,69],[-174.9,67.2],[-175,66.6]],[[18.3,79.7],[21.5,79],[15.9,76.8],[10.4,79.7],[17,80.1],[18.3,79.7]],[[173,-40.9],[174.2,-41.3],[173.1,-43.9],[169.3,-46.6],[166.7,-46.2],[172.8,-40.5],[173,-40.9]],[[-87,79.7],[-85.8,79.3],[-90.8,78.2],[-96.7,80.2],[-92.4,81.3],[-87.8,80.3],[-87,79.7]],[[-94.7,77.1],[-79.8,74.9],[-92.4,74.8],[-96.7,77.2],[-94.7,77.1]],[[125.2,1.4],[123.7,0.2],[120.2,0.2],[120.9,-1.4],[123.3,-0.6],[121.5,-1.9],[123.2,-5.3],[121.5,-4.6],[121,-2.6],[120.4,-5.5],[119.4,-5.4],[118.8,-2.8],[120,0.6],[125.1,1.6],[125.2,1.4]],[[-45.2,-78],[-43.3,-80],[-54.2,-80.6],[-46.7,-77.8],[-45.2,-78]],[[-56.1,50.7],[-56.8,49.8],[-53.5,49.2],[-53.1,46.7],[-54.2,47.8],[-55.4,46.9],[-59.3,47.6],[-57.4,50.7],[-55.6,51.3],[-56.1,50.7]],[[-108.2,76.2],[-105.9,76],[-106.3,75],[-113.7,74.4],[-111.8,75.2],[-117.7,75.2],[-115.4,76.5],[-109.1,75.5],[-110.5,76.4],[-108.5,76.7],[-108.2,76.2]],[[174.6,-36.2],[176.8,-37.9],[178.5,-37.7],[175.2,-41.7],[173.8,-39.5],[174.7,-37.4],[172.6,-34.5],[174.3,-35.3],[174.6,-36.2]],[[143.6,50.7],[144.7,49],[143.2,49.3],[142.6,47.9],[143.5,46.1],[142.1,46],[141.7,53.3],[142.7,54.4],[143.2,51.8],[143.6,50.7]],[[121.3,18.5],[122.5,17.1],[121.7,14.3],[124,13.8],[124.1,12.5],[120.6,13.9],[119.9,16.4],[120.7,18.5],[121.3,18.5]],[[-68.5,-71],[-68.8,-72.2],[-71.1,-72.5],[-75,-71.7],[-72.1,-71.2],[-71.2,-69],[-68.7,-70.5],[-68.5,-71]],[[99.9,78.9],[91.2,80.3],[95.9,81.3],[100.2,79.8],[99.9,78.9]],[[-67.7,-53.8],[-65,-54.7],[-69.2,-55.5],[-74.7,-52.8],[-71.1,-54.1],[-69.3,-52.5],[-68.2,-53.1],[-67.7,-53.8]],[[143.9,44.2],[145.3,44.4],[145.5,43.3],[140,41.6],[142,45.6],[143.1,44.5],[143.9,44.2]],[[108.6,-6.8],[110.8,-6.5],[115.7,-8.4],[106.5,-7.4],[105.4,-6.9],[106.1,-5.9],[108.5,-6.4],[108.6,-6.8]],[[-6.8,52.3],[-10,51.8],[-9.7,53.9],[-6.7,55.2],[-5.7,54.6],[-6,53.2],[-6.8,52.3]],[[-100.4,73.8],[-97.4,73.8],[-98.1,73],[-96.5,72.6],[-96.7,71.7],[-99.3,71.4],[-102.5,72.5],[-100.4,72.7],[-101.5,73.4],[-100.4,73.8]],[[-85.2,65.7],[-80.1,63.7],[-87.2,63.5],[-85.9,65.7],[-85.2,65.7]],[[126.4,8.4],[125.4,5.6],[123.6,7.8],[121.9,7.2],[125.4,9.8],[126.3,8.8],[126.4,8.4]],[[145.4,-40.8],[148.3,-40.9],[147.9,-43.2],[146,-43.5],[144.7,-40.7],[145.4,-40.8]],[[-79.7,22.8],[-74.2,20.3],[-77.8,19.9],[-77.1,20.4],[-78.7,21.6],[-81.8,22.6],[-85,21.9],[-80.6,23.1],[-79.7,22.8]],[[25.4,80.4],[27.4,80.1],[23,79.4],[17.4,80.3],[22.9,80.7],[25.4,80.4]],[[145.1,75.6],[139,74.6],[137,75.3],[141.5,76.1],[145.1,75.6]],[[-93.2,72.8],[-95.4,72.1],[-96,73.4],[-92.4,74.1],[-90.5,73.9],[-92,73],[-93.2,72.8]],[[-72.6,19.9],[-68.3,18.6],[-73.9,18],[-74.4,18.7],[-72.3,18.7],[-73.2,19.9],[-72.6,19.9]],[[-98.5,76.7],[-98.2,75],[-102.5,75.6],[-102.6,76.3],[-98.6,76.6],[-98.5,76.7]],[[-116.2,77.6],[-117.1,76.5],[-122.9,76.1],[-117.6,77.5],[-116.2,77.6]]];
-const LOC_SPAN0 = 46;   // default latitude span (degrees) — a regional view
-function padsInRegistry() {
-  return Object.values(PADS || {}).filter(p => Number.isFinite(p?.lat) && Number.isFinite(p?.lon));
-}
-function locGeom(canvas) {
-  const st = canvas._loc;
-  const w = canvas.clientWidth || 640, h = canvas.clientHeight || 150;
-  const dppY = st.span / h;
-  const dppX = dppY / Math.max(0.2, Math.cos(st.cLat * Math.PI / 180));   // equirectangular aspect at centre lat
-  return {
-    w, h, dppX, dppY,
-    proj: (lon, la) => [w / 2 + (lon - st.cLon) / dppX, h / 2 - (la - st.cLat) / dppY],
-    unproj: (px, py) => [st.cLon + (px - w / 2) * dppX, st.cLat - (py - h / 2) * dppY],
-  };
-}
-function renderLocator(canvas) {
-  const st = canvas._loc; if (!st) return;
+function drawLocator(canvas, lat, lon) {
+  if (!canvas) return;
   const css = getComputedStyle(document.documentElement);
   const cAccent = css.getPropertyValue('--accent').trim() || '#22d3ee';
   const cLine = css.getPropertyValue('--border2').trim() || '#1c3048';
   const cText = css.getPropertyValue('--dim').trim() || '#5d81a0';
-  const cLand = css.getPropertyValue('--surf3').trim() || '#0e2033';
   const dpr = Math.min(devicePixelRatio || 1, 2);
-  const g = locGeom(canvas), w = g.w, h = g.h;
+  const w = canvas.clientWidth || 640, h = canvas.clientHeight || 150;
   canvas.width = w * dpr; canvas.height = h * dpr;
   const ctx = canvas.getContext('2d');
   ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
   ctx.clearRect(0, 0, w, h);
-  // landmasses
-  ctx.beginPath();
-  for (const ring of WORLD_LAND) {
-    for (let i = 0; i < ring.length; i++) {
-      const [x, y] = g.proj(ring[i][0], ring[i][1]);
-      if (i === 0) ctx.moveTo(x, y); else ctx.lineTo(x, y);
-    }
-    ctx.closePath();
-  }
-  ctx.fillStyle = cLand; ctx.globalAlpha = 0.6; ctx.fill('evenodd');
-  ctx.globalAlpha = 1; ctx.lineWidth = 1; ctx.strokeStyle = cLine; ctx.stroke();
-  // adaptive graticule
-  const step = st.span > 120 ? 30 : st.span > 60 ? 15 : st.span > 24 ? 10 : st.span > 10 ? 5 : 2;
-  ctx.lineWidth = 1; ctx.globalAlpha = 0.45;
-  for (let lo = -180; lo <= 180; lo += step) {
-    const x = g.proj(lo, st.cLat)[0]; if (x < 0 || x > w) continue;
-    ctx.strokeStyle = lo === 0 ? cText : cLine;
+  ctx.lineWidth = 1;
+  for (let g = -150; g <= 150; g += 30) {           // meridians
+    const x = ((g + 180) / 360) * w;
+    ctx.strokeStyle = g === 0 ? cText : cLine;
     ctx.beginPath(); ctx.moveTo(x, 0); ctx.lineTo(x, h); ctx.stroke();
   }
-  for (let la = -90; la <= 90; la += step) {
-    const y = g.proj(st.cLon, la)[1]; if (y < 0 || y > h) continue;
-    ctx.strokeStyle = la === 0 ? cText : cLine;
+  for (let g = -60; g <= 60; g += 30) {             // parallels
+    const y = ((90 - g) / 180) * h;
+    ctx.strokeStyle = g === 0 ? cText : cLine;
     ctx.beginPath(); ctx.moveTo(0, y); ctx.lineTo(w, y); ctx.stroke();
   }
+  const px = ((lon + 180) / 360) * w, py = ((90 - lat) / 180) * h;
+  ctx.strokeStyle = cAccent; ctx.globalAlpha = 0.55;
+  ctx.beginPath(); ctx.moveTo(px, 0); ctx.lineTo(px, h); ctx.stroke();
+  ctx.beginPath(); ctx.moveTo(0, py); ctx.lineTo(w, py); ctx.stroke();
   ctx.globalAlpha = 1;
-  // sibling launch sites
-  for (const p of padsInRegistry()) {
-    if (p.lat === st.tlat && p.lon === st.tlon) continue;
-    const [x, y] = g.proj(p.lon, p.lat);
-    if (x < 3 || x > w - 3 || y < 3 || y > h - 3) continue;
-    ctx.beginPath(); ctx.arc(x, y, 1.7, 0, 6.2832); ctx.fillStyle = cText; ctx.globalAlpha = 0.65; ctx.fill();
-  }
+  ctx.beginPath(); ctx.arc(px, py, 9, 0, 6.2832); ctx.globalAlpha = 0.25; ctx.strokeStyle = cAccent; ctx.stroke();
   ctx.globalAlpha = 1;
-  // target pad
-  const [px, py] = g.proj(st.tlon, st.tlat);
-  ctx.strokeStyle = cAccent;
-  ctx.globalAlpha = 0.5; ctx.beginPath(); ctx.moveTo(px, 0); ctx.lineTo(px, h); ctx.moveTo(0, py); ctx.lineTo(w, py); ctx.stroke();
-  ctx.globalAlpha = 0.25; ctx.beginPath(); ctx.arc(px, py, 10, 0, 6.2832); ctx.stroke();
-  ctx.globalAlpha = 1; ctx.beginPath(); ctx.arc(px, py, 5, 0, 6.2832); ctx.stroke();
+  ctx.beginPath(); ctx.arc(px, py, 4.5, 0, 6.2832); ctx.stroke();
   ctx.beginPath(); ctx.arc(px, py, 2, 0, 6.2832); ctx.fillStyle = cAccent; ctx.fill();
-  // readout
-  const rd = canvas.parentElement?.querySelector('.loc-read');
-  if (rd) {
-    const c = st.cur || [st.tlon, st.tlat];
-    rd.textContent = `${Math.abs(c[1]).toFixed(2)}°${c[1] >= 0 ? 'N' : 'S'}  ${Math.abs(c[0]).toFixed(2)}°${c[0] >= 0 ? 'E' : 'W'}${st.cur ? '' : ' · PAD'}`;
-  }
-}
-function initLocator(canvas) {
-  const st = canvas._loc;
-  const clampSpan = s => Math.max(4, Math.min(180, s));
-  const clampCenter = () => { st.cLat = Math.max(-85, Math.min(85, st.cLat)); };
-  const zoomAt = (factor, px, py) => {
-    const [glon, glat] = locGeom(canvas).unproj(px, py);
-    st.span = clampSpan(st.span * factor);
-    const [nlon, nlat] = locGeom(canvas).unproj(px, py);
-    st.cLon += glon - nlon; st.cLat += glat - nlat;
-    clampCenter(); renderLocator(canvas);
-  };
-  const reset = () => { st.cLon = st.tlon; st.cLat = st.tlat; st.span = LOC_SPAN0; renderLocator(canvas); };
-  canvas.addEventListener('wheel', e => {
-    e.preventDefault();
-    const r = canvas.getBoundingClientRect();
-    zoomAt(e.deltaY > 0 ? 1.18 : 1 / 1.18, e.clientX - r.left, e.clientY - r.top);
-  }, { passive: false });
-  let drag = null;
-  canvas.addEventListener('pointerdown', e => { drag = { x: e.clientX, y: e.clientY }; canvas.setPointerCapture(e.pointerId); canvas.style.cursor = 'grabbing'; });
-  canvas.addEventListener('pointermove', e => {
-    const r = canvas.getBoundingClientRect(), g = locGeom(canvas);
-    st.cur = g.unproj(e.clientX - r.left, e.clientY - r.top);
-    if (drag) {
-      st.cLon -= (e.clientX - drag.x) * g.dppX;
-      st.cLat += (e.clientY - drag.y) * g.dppY;
-      drag = { x: e.clientX, y: e.clientY }; clampCenter();
-    }
-    renderLocator(canvas);
-  });
-  canvas.addEventListener('pointerup', () => { drag = null; canvas.style.cursor = 'grab'; });
-  canvas.addEventListener('pointerleave', () => { drag = null; st.cur = null; renderLocator(canvas); });
-  canvas.addEventListener('dblclick', reset);
-  canvas.style.cursor = 'grab';
-  canvas.parentElement?.querySelectorAll('[data-loc]').forEach(btn => btn.addEventListener('click', () => {
-    const a = btn.getAttribute('data-loc');
-    if (a === 'in') zoomAt(1 / 1.4, canvas.clientWidth / 2, canvas.clientHeight / 2);
-    else if (a === 'out') zoomAt(1.4, canvas.clientWidth / 2, canvas.clientHeight / 2);
-    else reset();
-  }));
-}
-function drawLocator(canvas, lat, lon) {
-  if (!canvas) return;
-  let st = canvas._loc;
-  if (!st || st.tlat !== lat || st.tlon !== lon) {       // new pad → fresh view + listeners; same pad (theme toggle) → keep view
-    canvas._loc = { tlat: lat, tlon: lon, cLon: lon, cLat: lat, span: LOC_SPAN0, cur: null };
-    initLocator(canvas);
-  }
-  renderLocator(canvas);
+  ctx.font = '9px "JetBrains Mono", monospace'; ctx.fillStyle = cText;
+  ctx.fillText(`${lat.toFixed(2)}°  ${lon.toFixed(2)}°`, 8, h - 8);
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -4602,57 +3972,6 @@ function initSky() {
    hues app-wide; status hues reserved for outcomes; cyan ramp for
    single-magnitude charts). Re-grows from 0 on each tab visit.
    ════════════════════════════════════════════════════════════════ */
-/* ════════════════════════════════════════════════════════════════
-   §12c · SPACE WEATHER (NOAA SWPC) — keyless planetary K-index.
-   A quiet→storm readout in Analytics. Fully optional: if the feed is
-   unreachable the card simply doesn't render (no clutter, no error).
-   ════════════════════════════════════════════════════════════════ */
-const SPACEWX = { kp: null, series: [], ts: null, state: 'idle' };   // state: idle | loading | ok | fail
-function kpMeta(kp) {
-  if (kp == null) return { label: '—', color: 'var(--dim)' };
-  if (kp < 5) return { label: 'Quiet', color: 'var(--green)' };
-  const g = Math.min(5, Math.floor(kp) - 4);
-  return { label: `Storm G${g}`, color: g >= 3 ? 'var(--red)' : 'var(--amber)' };
-}
-async function loadSpaceWeather() {
-  const cached = cacheGet('swkp', WX_TTL);
-  if (cached) { Object.assign(SPACEWX, cached, { state: 'ok' }); return afterSpaceWx(); }
-  SPACEWX.state = 'loading';
-  try {
-    const rows = await fetchJSON(API.swpcKp, 7000);          // [[time_tag,Kp,a_running,station_count], …] — row 0 is the header
-    const data = (Array.isArray(rows) ? rows.slice(1) : []).map(r => ({ t: r[0], kp: parseFloat(r[1]) })).filter(x => Number.isFinite(x.kp));
-    if (!data.length) throw new Error('no kp');
-    const series = data.slice(-24);
-    const last = series[series.length - 1];
-    Object.assign(SPACEWX, { series, kp: last.kp, ts: last.t, state: 'ok' });
-    cacheSet('swkp', { series, kp: last.kp, ts: last.t });
-  } catch { SPACEWX.state = 'fail'; }
-  afterSpaceWx();
-}
-function afterSpaceWx() { if (S.activeTab === 'analytics') renderAnalytics(); }   // refresh the panel if it's on screen
-function spaceWxCardHTML() {
-  const s = SPACEWX;
-  if (s.state === 'fail' || s.state === 'idle') return '';    // unreachable / not started → omit entirely
-  const m = kpMeta(s.kp);
-  const tail = s.series.slice(-16);
-  const spark = tail.map(x => `<span class="swx-bar" style="height:${Math.max(6, Math.round(x.kp / 9 * 100))}%;background:${kpMeta(x.kp).color}" title="Kp ${x.kp.toFixed(1)} · ${esc(x.t)}"></span>`).join('');
-  const when = s.ts ? esc(String(s.ts).replace('T', ' ').replace(/:00$/, '') + ' UTC') : '';
-  return `
-    <div class="an-card span2">
-      <h3>Space Weather <span class="an-h-note">NOAA SWPC · LIVE</span></h3>
-      <div class="an-caption">PLANETARY K-INDEX · GEOMAGNETIC ACTIVITY</div>
-      ${s.state !== 'ok' ? '<p class="tl-empty" style="padding:16px 0">FETCHING SPACE WEATHER…</p>' : `
-      <div class="swx">
-        <div class="swx-now">
-          <div class="swx-kp" style="color:${m.color}">${s.kp.toFixed(1)}<small>Kp</small></div>
-          <div class="swx-state" style="color:${m.color}">${esc(m.label)}</div>
-          <div class="swx-note">${s.kp < 5 ? 'Nominal launch &amp; range conditions' : 'Elevated — HF comms &amp; GPS may degrade'}</div>
-          <div class="swx-when">${when}</div>
-        </div>
-        <div class="swx-spark" role="img" aria-label="Recent planetary K-index, current ${s.kp.toFixed(1)}">${spark}</div>
-      </div>`}
-    </div>`;
-}
 function renderAnalytics() {
   const body = $('#analytics-body'); if (!body) return;
   const all = S.all;
@@ -4732,7 +4051,6 @@ function renderAnalytics() {
       <div class="an-tile"><div class="an-tnum">${next30}</div><div class="an-tlbl">Next 30 Days</div><div class="an-tsub">upcoming launches</div></div>
     </div>
     <div class="an-panels">
-      ${spaceWxCardHTML()}
       <div class="an-card">
         <h3>Launches by Provider</h3>
         <div class="an-caption">ALL TRACKED LAUNCHES · TOP 8</div>
@@ -4984,13 +4302,12 @@ function boot() {
   window.addEventListener('hashchange', readHash);
   setInterval(cdTickAll, 1000);
   cdTickAll();
-  loadSpaceWeather();                              // fire-and-forget NOAA space-weather (Analytics panel)
-  loadFeed()
-    .then(({ upcoming, past, cached, provider }) => {
+  loadLive()
+    .then(({ upcoming, past, cached }) => {
       if (upcoming.length || past.length) {
-        // a source that returns no past (free rocketlaunch.live tier) blends with seed, but says so
+        // free API tier often lacks past data — blend with seed, but say so
         const src = (upcoming.length && past.length) ? (cached ? 'cached' : 'live') : 'mixed';
-        setData(upcoming.length ? upcoming : S.upcoming, past.length ? past : S.past, src, provider);
+        setData(upcoming.length ? upcoming : S.upcoming, past.length ? past : S.past, src);
         announce(src === 'mixed' ? 'Live upcoming launches loaded; recent launches from sample data.'
           : cached ? 'Showing cached launch data.' : 'Live launch data loaded.');
         if (hashPendingLaunch && S.byId.has(hashPendingLaunch) && !MODAL.openId) openModal(hashPendingLaunch);
