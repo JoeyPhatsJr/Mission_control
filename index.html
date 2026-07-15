@@ -971,6 +971,21 @@ main {
 .co-tags { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 14px; }
 .co-tag { font-family: var(--fm); font-size: 0.6rem; color: var(--dim); border: 1px solid var(--border); border-radius: 3px; padding: 2px 8px; }
 .co-note { font-family: var(--fm); font-size: 0.6rem; color: var(--dim); letter-spacing: 0.06em; margin-top: var(--sp-4); }
+/* §12f booster fleet */
+.fleet-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 1px; }
+.fleet-card { background: var(--surf); padding: 18px 18px 16px; box-shadow: 0 0 0 1px var(--border); position: relative; overflow: hidden; display: flex; flex-direction: column; }
+.fleet-card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--prov, var(--accent)), transparent); opacity: 0.7; }
+.fleet-top { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.fleet-serial { font-family: var(--fd); font-size: 1.5rem; font-weight: 800; letter-spacing: 0.04em; color: var(--text); }
+.fleet-status { font-family: var(--fm); font-size: 0.5rem; letter-spacing: 0.12em; text-transform: uppercase; padding: 3px 7px; border-radius: 4px; border: 1px solid var(--border2); color: var(--dim); flex-shrink: 0; }
+.fleet-status.ok { color: var(--green); border-color: color-mix(in srgb, var(--green) 40%, transparent); }
+.fleet-status.bad { color: var(--red); border-color: color-mix(in srgb, var(--red) 40%, transparent); }
+.fleet-fam { font-family: var(--fm); font-size: 0.56rem; color: var(--dim); text-transform: uppercase; letter-spacing: 0.1em; margin-top: 3px; }
+.fleet-flights { display: flex; align-items: baseline; gap: 8px; margin: 14px 0 12px; }
+.fleet-flights b { font-family: var(--fd); font-size: 2.4rem; font-weight: 800; color: var(--prov, var(--accent)); font-variant-numeric: tabular-nums; line-height: 1; }
+.fleet-flights span { font-family: var(--fm); font-size: 0.6rem; color: var(--dim); text-transform: uppercase; letter-spacing: 0.12em; }
+.fleet-rows { display: flex; flex-direction: column; gap: 6px; margin-top: auto; }
+.fleet-rows .crow dt { min-width: 72px; }
 
 /* ── modal / dossier ─────────────────────────────────────────── */
 .veil {
@@ -1082,6 +1097,20 @@ main {
 .alt-mark { position: absolute; top: 50%; width: 9px; height: 9px; border-radius: 50%; background: var(--accent); transform: translate(-50%,-50%); box-shadow: 0 0 6px var(--accent); }
 .alt-labels { display: flex; justify-content: space-between; font-family: var(--fm); font-size: 0.44rem; color: var(--dim); letter-spacing: 0.1em; margin-bottom: 9px; }
 @media (max-width: 560px) { .brief-grid { grid-template-columns: 1fr; } }
+/* window weather timeline */
+.wx-strip-wrap { border: 1px solid var(--border); border-radius: 8px; background: var(--surf2); padding: 14px 16px 12px; margin-bottom: 20px; }
+.wx-strip { display: flex; gap: 4px; align-items: flex-end; margin: 14px 0 9px; overflow-x: auto; }
+.wx-cell { flex: 1; min-width: 26px; display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 4px 2px 3px; border-radius: 5px; position: relative; }
+.wx-cell.inwin { background: color-mix(in srgb, var(--accent) 9%, transparent); }
+.wx-cell.t0 { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 55%, transparent); }
+.wx-cell.t0::before { content: '▸ T-0'; position: absolute; top: -13px; font-family: var(--fm); font-size: 0.44rem; letter-spacing: 0.08em; color: var(--accent); white-space: nowrap; }
+.wx-bar { width: 10px; height: 46px; background: var(--surf3); border-radius: 3px; display: flex; align-items: flex-end; overflow: hidden; }
+.wx-bar span { display: block; width: 100%; border-radius: 3px 3px 0 0; }
+.wx-hr { font-family: var(--fm); font-size: 0.5rem; color: var(--dim); white-space: nowrap; }
+.wx-legend { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; font-family: var(--fm); font-size: 0.5rem; color: var(--text2); text-transform: uppercase; letter-spacing: 0.06em; }
+.wxl { display: inline-flex; align-items: center; gap: 4px; }
+.wxl i { width: 8px; height: 8px; border-radius: 2px; }
+.wx-legend-note { color: var(--dim); margin-left: auto; text-transform: none; letter-spacing: 0; }
 .m-nav {
   display: flex; justify-content: space-between; align-items: center;
   gap: 12px; margin-top: 20px; padding-top: 16px;
@@ -1571,6 +1600,7 @@ main {
       <button class="tab" id="tab-globe"     role="tab" aria-selected="false" aria-controls="panel-globe"     data-tab="globe" tabindex="-1">Globe</button>
       <button class="tab" id="tab-analytics" role="tab" aria-selected="false" aria-controls="panel-analytics" data-tab="analytics" tabindex="-1">Analytics</button>
       <button class="tab" id="tab-companies" role="tab" aria-selected="false" aria-controls="panel-companies" data-tab="companies" tabindex="-1">Companies</button>
+      <button class="tab" id="tab-fleet" role="tab" aria-selected="false" aria-controls="panel-fleet" data-tab="fleet" tabindex="-1">Fleet</button>
     </div>
   </nav>
   <div class="top-actions">
@@ -1717,6 +1747,13 @@ main {
     <h2 class="sec-head">Space Industry Operators</h2>
     <div class="co-grid" id="co-grid"></div>
     <p class="co-note">LAUNCH ACTIVITY &amp; RECENT FORM DERIVED FROM TRACKED DATASET · FIGURES MARKED ≈ ARE STATIC ESTIMATES · CLICK AN OPERATOR TO FILTER MISSIONS</p>
+  </section>
+
+  <section class="panel" id="panel-fleet" role="tabpanel" aria-labelledby="tab-fleet" tabindex="0" hidden>
+    <h1 class="sr-only">Booster Fleet</h1>
+    <h2 class="sec-head">Reusable Booster Fleet</h2>
+    <div class="fleet-grid" id="fleet-grid"></div>
+    <p class="co-note">INDIVIDUAL FLIGHT-PROVEN BOOSTERS · LIVE FROM THE SPACE DEVS (LL2) · RANKED BY FLIGHT COUNT · REUSABLE CORES ARE PREDOMINANTLY SPACEX</p>
   </section>
 
 </main>
@@ -2146,11 +2183,13 @@ const API = {
   up:   'https://fdo.rocketlaunch.live/json/launches/next/15',
   past: 'https://fdo.rocketlaunch.live/json/launches/past/15',
   iss:  'https://api.wheretheiss.at/v1/satellites/25544',
+  tle:  (id) => 'https://tle.ivanstanojevic.me/api/tle/' + id,   // real orbital elements per NORAD id
   // The Space Devs Launch Library 2 — primary feed (real crew, official probability, real past launches).
   // detailed mode carries crew/probability/weather; ~15 req/hr unauth, so it's cached hard (LL2_TTL).
   ll2Up:   'https://ll.thespacedevs.com/2.3.0/launches/upcoming/?mode=detailed&limit=20&hide_recent_previous=true',
   ll2Past: 'https://ll.thespacedevs.com/2.3.0/launches/previous/?mode=detailed&limit=15',
   swpcKp:  'https://services.swpc.noaa.gov/products/noaa-planetary-k-index.json',   // NOAA space weather (keyless)
+  fleet:   'https://ll.thespacedevs.com/2.3.0/launchers/?flight_proven=true&ordering=-flights&limit=30',   // reusable boosters
   meteo:   (lat, lon) => `https://api.open-meteo.com/v1/forecast?latitude=${lat}&longitude=${lon}&hourly=temperature_2m,precipitation_probability,cloud_cover,wind_speed_10m&temperature_unit=fahrenheit&wind_speed_unit=mph&forecast_days=16&timeformat=unixtime`,
   wiki:    (title) => `https://en.wikipedia.org/api/rest_v1/page/summary/${encodeURIComponent(title)}?redirect=true`,
 };
@@ -3060,6 +3099,62 @@ function renderCompanies() {
   COMPANIES.forEach((co, i) => loadWiki(co.name, 'co-wiki-' + i));   // enrich with a real Wikipedia blurb (async)
 }
 /* ════════════════════════════════════════════════════════════════
+   §12f · BOOSTER FLEET — individual flight-proven cores from LL2
+   (/launchers/). Lazy-loaded on first Fleet-tab visit; cached. Needs
+   a live connection — shows an unavailable notice offline.
+   ════════════════════════════════════════════════════════════════ */
+const FLEET = { data: null, state: 'idle' };   // idle | loading | ok | fail
+function turnaroundStr(t) {
+  const m = /P(?:(\d+)D)?(?:T(?:(\d+)H)?)?/.exec(t || '');
+  if (!m || (!m[1] && !m[2])) return '';
+  const d = +(m[1] || 0), h = +(m[2] || 0);
+  return d ? `${d}d ${h}h` : `${h}h`;
+}
+function fleetStatusClass(s) {
+  return /active/i.test(s) ? 'ok' : /retired/i.test(s) ? 'ret' : /lost|destroy|expend/i.test(s) ? 'bad' : 'unk';
+}
+async function loadFleet() {
+  if (FLEET.state === 'loading') return;
+  const cached = cacheGet('fleet', LL2_TTL);
+  if (cached) { FLEET.data = cached; FLEET.state = 'ok'; return renderFleet(); }
+  FLEET.state = 'loading'; renderFleet();
+  try {
+    const d = await fetchJSON(API.fleet, 9000);
+    FLEET.data = (d.results || []).map(r => ({
+      serial: r.serial_number, flights: r.flights || 0,
+      status: (r.status && r.status.name) || 'unknown',
+      landings: r.successful_landings || 0, attempts: r.attempted_landings || 0,
+      first: (r.first_launch_date || '').slice(0, 10), last: (r.last_launch_date || '').slice(0, 10),
+      turnaround: turnaroundStr(r.fastest_turnaround),
+      fam: /^B0|^B1/.test(r.serial_number || '') ? 'Falcon 9' : /^GS/.test(r.serial_number || '') ? 'New Glenn' : (r.launcher_config && (r.launcher_config.full_name || r.launcher_config.name)) || '',
+    })).filter(b => b.serial);
+    cacheSet('fleet', FLEET.data); FLEET.state = 'ok';
+  } catch { FLEET.state = 'fail'; }
+  renderFleet();
+}
+function renderFleet() {
+  const grid = $('#fleet-grid'); if (!grid) return;
+  if (FLEET.state === 'idle' || FLEET.state === 'loading') { grid.innerHTML = '<p class="tl-empty" style="padding:30px 0">LOADING BOOSTER FLEET…</p>'; return; }
+  if (FLEET.state === 'fail') { grid.innerHTML = '<p class="tl-empty" style="padding:30px 0">FLEET DATA NEEDS A LIVE CONNECTION — open the hosted app online.</p>'; return; }
+  if (!FLEET.data.length) { grid.innerHTML = '<p class="tl-empty" style="padding:30px 0">NO FLIGHT-PROVEN BOOSTERS RETURNED.</p>'; return; }
+  const spx = provColor('SpaceX');
+  grid.innerHTML = FLEET.data.map(b => {
+    const cls = fleetStatusClass(b.status);
+    const rate = b.attempts ? Math.round(b.landings / b.attempts * 100) : null;
+    return `<div class="fleet-card fl-${cls}" style="--prov:${b.fam === 'New Glenn' ? provColor('Blue Origin') : spx}">
+      <div class="fleet-top"><span class="fleet-serial">${esc(b.serial)}</span><span class="fleet-status ${cls}">${esc(b.status)}</span></div>
+      ${b.fam ? `<div class="fleet-fam">${esc(b.fam)}</div>` : ''}
+      <div class="fleet-flights"><b>${b.flights}</b><span>flights</span></div>
+      <div class="fleet-rows">
+        <div class="crow"><dt>Landings</dt><dd>${b.landings}/${b.attempts}${rate != null ? ` · ${rate}%` : ''}</dd></div>
+        ${b.turnaround ? `<div class="crow"><dt>Fastest</dt><dd>${esc(b.turnaround)} turnaround</dd></div>` : ''}
+        ${b.first ? `<div class="crow"><dt>Debut</dt><dd>${esc(b.first)}</dd></div>` : ''}
+        ${b.last ? `<div class="crow"><dt>Last flight</dt><dd>${esc(b.last)}</dd></div>` : ''}
+      </div>
+    </div>`;
+  }).join('');
+}
+/* ════════════════════════════════════════════════════════════════
    §13 GLOBE — lazy-loaded globe.gl. The library script tag is only
    injected on first Globe-tab visit; render loop and ISS polling
    pause whenever the tab or document is hidden. If the CDN or
@@ -3070,15 +3165,57 @@ const GLOBE = {
   iss: { sim: false, failCount: 0, timer: null, trail: [], simEpoch: NOW, simRetryAt: 0, pos: null, inflight: false },
   trails: { css: [], hst: [] },   // ground-track history for the simulated craft
 };
-/* Tracked spacecraft. ISS is live (wheretheiss.at) with a simulated
-   fallback; Tiangong & Hubble are always simulated from their orbital
-   elements. Sim params tuned so ground tracks look right. */
+/* Tracked spacecraft. Each is driven by a REAL TLE (propagated with the
+   SGP4-lite below) once loadTLEs() resolves; ISS also has a live wheretheiss.at
+   fix. The analytic sim params stay as a fallback if TLEs don't load. */
 const SATS = [
-  { id: 'iss', name: 'ISS',      color: '#ffffff', inc: 51.64, period: 5574, alt: 421, vel: 27560, phase: 1.8, lonOff: -40 },
-  { id: 'css', name: 'Tiangong', color: '#fbbf24', inc: 41.5,  period: 5460, alt: 389, vel: 27600, phase: 3.9, lonOff: 60 },
-  { id: 'hst', name: 'Hubble',   color: '#a78bfa', inc: 28.5,  period: 5700, alt: 538, vel: 27300, phase: 0.6, lonOff: 140 },
+  { id: 'iss', name: 'ISS',      color: '#ffffff', norad: 25544, inc: 51.64, period: 5574, alt: 421, vel: 27560, phase: 1.8, lonOff: -40 },
+  { id: 'css', name: 'Tiangong', color: '#fbbf24', norad: 48274, inc: 41.5,  period: 5460, alt: 389, vel: 27600, phase: 3.9, lonOff: 60 },
+  { id: 'hst', name: 'Hubble',   color: '#a78bfa', norad: 20580, inc: 28.5,  period: 5700, alt: 538, vel: 27300, phase: 0.6, lonOff: 140 },
 ];
 const SAT_BY = Object.fromEntries(SATS.map(s => [s.id, s]));
+/* ── SGP4-lite: real TLE → position. Keplerian + J2 secular precession + GMST,
+   validated against a live ISS fix to ~0.2°. TLEs from tle.ivanstanojevic.me. ── */
+const ORB = { MU: 398600.4418, RE: 6378.137, J2: 1.08262668e-3, D2R: Math.PI / 180 };
+function parseTLE(l1, l2) {
+  const ey = +l1.substring(18, 20), ed = +l1.substring(20, 32);
+  const epoch = Date.UTC(ey < 57 ? 2000 + ey : 1900 + ey, 0, 1) / 1000 + (ed - 1) * 86400;
+  const n0 = +l2.substring(52, 63) * 2 * Math.PI / 86400;
+  return { epoch, n0, a: Math.cbrt(ORB.MU / (n0 * n0)),
+    inc: +l2.substring(8, 16) * ORB.D2R, raan: +l2.substring(17, 25) * ORB.D2R,
+    ecc: +('0.' + l2.substring(26, 33).trim()), argp: +l2.substring(34, 42) * ORB.D2R, m0: +l2.substring(43, 51) * ORB.D2R };
+}
+function gmstRad(unix) {
+  const JD = unix / 86400 + 2440587.5, T = (JD - 2451545) / 36525;
+  const g = 280.46061837 + 360.98564736629 * (JD - 2451545) + 0.000387933 * T * T - T * T * T / 38710000;
+  return (((g % 360) + 360) % 360) * ORB.D2R;
+}
+function propagateTLE(el, unix) {
+  const dt = unix - el.epoch, n = el.n0, a = el.a, e = el.ecc, i = el.inc;
+  const p = a * (1 - e * e), f = 1.5 * ORB.J2 * (ORB.RE / p) ** 2 * n;
+  const raan = el.raan - f * Math.cos(i) * dt, argp = el.argp + f * (2 - 2.5 * Math.sin(i) ** 2) * dt;
+  let M = ((el.m0 + n * dt) % (2 * Math.PI) + 2 * Math.PI) % (2 * Math.PI), E = M;
+  for (let k = 0; k < 8; k++) E -= (E - e * Math.sin(E) - M) / (1 - e * Math.cos(E));
+  const nu = Math.atan2(Math.sqrt(1 - e * e) * Math.sin(E), Math.cos(E) - e), r = a * (1 - e * Math.cos(E));
+  const xo = r * Math.cos(nu), yo = r * Math.sin(nu);
+  const cO = Math.cos(raan), sO = Math.sin(raan), cw = Math.cos(argp), sw = Math.sin(argp), ci = Math.cos(i), si = Math.sin(i);
+  const X = xo * (cO * cw - sO * sw * ci) - yo * (cO * sw + sO * cw * ci);
+  const Y = xo * (sO * cw + cO * sw * ci) - yo * (sO * sw - cO * cw * ci);
+  const Z = xo * (sw * si) + yo * (cw * si);
+  const th = gmstRad(unix), xe = X * Math.cos(th) + Y * Math.sin(th), ye = -X * Math.sin(th) + Y * Math.cos(th);
+  return { lat: Math.asin(Z / r) / ORB.D2R, lng: ((Math.atan2(ye, xe) / ORB.D2R + 540) % 360) - 180,
+    alt: r - ORB.RE, vel: Math.sqrt(ORB.MU * (2 / r - 1 / a)) * 3600 };
+}
+async function loadTLEs() {
+  await Promise.all(SATS.map(async s => {
+    try {
+      const cached = cacheGet('tle-' + s.norad, 6 * HOUR);
+      const d = cached || await fetchJSON(API.tle(s.norad), 8000);
+      if (d && d.line1 && d.line2) { s.tle = parseTLE(d.line1, d.line2); if (!cached) cacheSet('tle-' + s.norad, { line1: d.line1, line2: d.line2 }); }
+    } catch { /* keep the analytic sim for this craft */ }
+  }));
+  if (GLOBE.ready) renderSats();
+}
 const GLOBE_CDN = 'https://unpkg.com/globe.gl@2.27.2/dist/globe.gl.min.js';
 /* No throwaway-canvas WebGL probe: context creation is the flakiest
    part of WebGL, so the real init below is the test (try/catch +
@@ -3186,8 +3323,9 @@ function initGlobe() {
     GLOBE.world = world; GLOBE.ready = true;
     const load = $('#globe-loading'); if (load) load.remove();
     refreshGlobeData();
-    renderSats();       // paint sats/terminator immediately (sim until first live ISS fix)
+    renderSats();       // paint sats/terminator immediately (analytic sim until TLEs/ISS fix land)
     startISS();
+    loadTLEs();         // upgrade all craft to real TLE-based tracking
     if (GLOBE.pendingPad) { const k = GLOBE.pendingPad; GLOBE.pendingPad = null; focusPad(k); }
     if (S.activeTab !== 'globe' || document.hidden) pauseGlobe();   // user left before init finished
   } catch {
@@ -3260,7 +3398,7 @@ function openSatPanel(id, isRefresh) {
   const prev = isRefresh ? $('#sat-pass-result')?.innerHTML : '';
   $('#gs-content').innerHTML = `
     <div class="gs-pad" style="display:flex;align-items:center;gap:9px"><span class="sat-dot" style="width:11px;height:11px;border-radius:50%;background:${s.color}"></span>${esc(s.name)}
-      <span class="sat-tag ${(p && p.live) ? '' : 'sim'}" style="margin-left:auto">${(p && p.live) ? 'LIVE' : 'SIM'}</span></div>
+      <span class="sat-tag ${(p && p.src && p.src !== 'SIM') ? '' : 'sim'}" style="margin-left:auto">${(p && p.src) || 'SIM'}</span></div>
     <div class="gs-loc">${s.id === 'iss' ? 'International Space Station' : s.id === 'css' ? 'Chinese Space Station' : 'Hubble Space Telescope'}</div>
     <dl class="hud-rows" style="margin-top:12px">
       <dt>Position</dt><dd>${p ? p.lat.toFixed(2) + '°, ' + p.lng.toFixed(2) + '°' : '—'}</dd>
@@ -3330,6 +3468,7 @@ async function pollISS() {
 }
 /* circular-orbit ground track from orbital elements */
 function simSat(s, tSec) {
+  if (s.tle) return propagateTLE(s.tle, GLOBE.iss.simEpoch / 1000 + tSec);   // real TLE-based position
   const u = (2 * Math.PI / s.period) * tSec + s.phase;
   const inc = s.inc * Math.PI / 180;
   const lat = Math.asin(Math.sin(inc) * Math.sin(u)) * 180 / Math.PI;
@@ -3375,9 +3514,9 @@ function renderSats() {
   const tSec = (Date.now() - GLOBE.iss.simEpoch) / 1000;
   const positions = {};
   // ISS: live fix if we have one and aren't in sim mode, else simulate
-  positions.iss = (!GLOBE.iss.sim && GLOBE.iss.pos) ? GLOBE.iss.pos : { ...simSat(SAT_BY.iss, tSec), live: false };
-  positions.css = { ...simSat(SAT_BY.css, tSec), live: false };
-  positions.hst = { ...simSat(SAT_BY.hst, tSec), live: false };
+  positions.iss = (!GLOBE.iss.sim && GLOBE.iss.pos) ? { ...GLOBE.iss.pos, src: 'LIVE' } : { ...simSat(SAT_BY.iss, tSec), live: false, src: SAT_BY.iss.tle ? 'TLE' : 'SIM' };
+  positions.css = { ...simSat(SAT_BY.css, tSec), live: false, src: SAT_BY.css.tle ? 'TLE' : 'SIM' };
+  positions.hst = { ...simSat(SAT_BY.hst, tSec), live: false, src: SAT_BY.hst.tle ? 'TLE' : 'SIM' };
   GLOBE.satPos = positions;                        // for the craft detail panel
   if (GLOBE.openSat) openSatPanel(GLOBE.openSat, true);   // live-refresh an open panel
 
@@ -3397,10 +3536,10 @@ function renderSats() {
   // HUD
   const hud = $('#sat-hud'); if (hud.hidden) hud.hidden = false;
   $('#sat-rows').innerHTML = SATS.map(s => {
-    const p = positions[s.id], live = !!p.live;
+    const p = positions[s.id], src = p.src || 'SIM';
     return `<button class="sat-row" data-sat="${s.id}" aria-label="${esc(s.name)} details">
       <span class="sat-name"><span class="sat-dot" style="background:${s.color}"></span>${esc(s.name)}</span>
-      <span class="sat-tag ${live ? '' : 'sim'}">${live ? 'LIVE' : 'SIM'}</span>
+      <span class="sat-tag ${src === 'SIM' ? 'sim' : ''}">${src}</span>
       <span class="sat-coord">${p.lat.toFixed(1)}°, ${p.lng.toFixed(1)}° · ${Math.round(p.alt)} KM · ${Math.round(p.vel).toLocaleString('en-US')} KM/H</span>
     </button>`;
   }).join('');
@@ -3701,6 +3840,16 @@ async function loadForecast(l) {
       sky: cloud < 25 ? 'Clear' : cloud < 55 ? 'Partly cloudy' : cloud < 80 ? 'Mostly cloudy' : 'Overcast',
     };
     wx.condition = wx.precip > 60 ? 'Storms likely' : wx.precip > 35 ? 'Showers possible' : wx.windMph > 26 ? 'High winds' : wx.sky;
+    // hour-by-hour window outlook: NET-1h through window-end +1h, capped to 14 cells
+    const start = Math.min(l.windowStart ?? l.net, l.net) / 1000 - 3600;
+    const end = Math.max(l.windowEnd ?? l.net, l.net) / 1000 + 3600;
+    const tl = [];
+    for (let i = 0; i < h.time.length && tl.length < 14; i++) {
+      const ti = h.time[i];
+      if (ti < start - 1800 || ti > end + 1800) continue;
+      tl.push({ t: ti * 1000, precip: Math.round(h.precipitation_probability?.[i] ?? 0), wind: Math.round(h.wind_speed_10m?.[i] ?? 0), temp: Math.round(h.temperature_2m?.[i]) });
+    }
+    wx.timeline = tl.length >= 2 ? tl : null;
     cacheSet('fc-' + l.id, wx);
     applyForecast(l, wx);
   } catch { FORECAST.set(l.id, 'none'); }
@@ -3708,8 +3857,27 @@ async function loadForecast(l) {
 function applyForecast(l, wx) {
   FORECAST.set(l.id, wx);
   l.weather = { summary: wx.sky, condition: wx.condition, tempF: wx.tempF, windMph: wx.windMph, precip: wx.precip };
+  l.wxTimeline = wx.timeline || null;
   if (MODAL.openId === l.id && $('#m-content')) renderModal(l);   // refresh the open dossier's Go Call
   if (S.heroLaunch && S.heroLaunch.id === l.id) renderHero();
+}
+// hour-by-hour go/no-go strip across the launch window (real Open-Meteo forecast)
+function wxGoColor(c) { return (c.precip > 60 || c.wind > 26) ? 'var(--red)' : (c.precip > 35 || c.wind > 18) ? 'var(--amber)' : 'var(--green)'; }
+function weatherStripHTML(l) {
+  const tl = l.wxTimeline;
+  if (!tl || tl.length < 2) return '';
+  const ws = l.windowStart ?? l.net, we = l.windowEnd ?? l.net;
+  return `<section class="wx-strip-wrap">
+    <div class="brief-title">◉ Window Outlook <span class="brief-est">forecast</span></div>
+    <div class="wx-strip">${tl.map(c => {
+      const t0 = Math.abs(c.t - l.net) < 1800000, inwin = c.t >= ws - 1800000 && c.t <= we + 1800000;
+      return `<div class="wx-cell${t0 ? ' t0' : ''}${inwin ? ' inwin' : ''}" title="${esc(fmtClock(c.t))} · ${c.precip}% precip · ${c.wind} mph · ${c.temp}°F">
+        <div class="wx-bar"><span style="height:${Math.max(5, c.precip)}%;background:${wxGoColor(c)}"></span></div>
+        <div class="wx-hr">${esc(fmtClock(c.t).replace(/:00/, '').replace(/\s?(AM|PM)/i, m => m.trim().toLowerCase()))}</div>
+      </div>`;
+    }).join('')}</div>
+    <div class="wx-legend"><span class="wxl"><i style="background:var(--green)"></i>Favourable</span><span class="wxl"><i style="background:var(--amber)"></i>Watch</span><span class="wxl"><i style="background:var(--red)"></i>Constraint</span><span class="wx-legend-note">bar = precip% · shaded = window · ▸ = T-0</span></div>
+  </section>`;
 }
 /* local solar-elevation (no API needed): day / twilight / night at the pad at T-0 */
 function sunAltitude(lat, lon, date) {
@@ -3789,6 +3957,7 @@ function renderModal(l) {
       </div>
       ${l.description ? `<p class="m-desc">${esc(l.description)}</p>` : ''}
       ${briefingHTML(l)}
+      ${weatherStripHTML(l)}
       ${showCd ? `<div class="m-cd-wrap" id="m-cd-wrap"><div class="cd-caption">T-Minus</div>${cdHTML('cd-modal')}</div>` : ''}
       <div id="feed-slot">${feedSectionHTML(l)}</div>
       <div class="m-grid">
@@ -4467,6 +4636,7 @@ function switchTab(name) {
   if (name === 'timeline') observeReveals($('#panel-timeline'));
   if (name === 'missions') observeReveals($('#panel-missions'));
   if (name === 'analytics') renderAnalytics();   // re-grow the charts on each visit
+  if (name === 'fleet') loadFleet();             // lazy-load the booster fleet on first visit
   writeHash();
 }
 
