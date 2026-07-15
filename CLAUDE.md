@@ -6,6 +6,8 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 `space-explorer/index.html` — a self-contained space launch tracker called **Mission Control** (console build MC-2). No build step, no dependencies to install. Open the file directly in a browser.
 
+**Deployed:** `https://joeyphatsjr.github.io/Mission_control/` (GitHub Pages, repo `JoeyPhatsJr/Mission_control`, `main` branch root). Serving over https flips `CAN_EMBED` true, so the Launch Feed plays YouTube **inline** (no redirect) — the `file://` build launches out to YouTube instead. Push to `main` to redeploy.
+
 ```
 open space-explorer/index.html
 ```
@@ -60,7 +62,7 @@ The entire app is a single HTML file (~4,080 lines) with embedded CSS and JavaSc
 
 All rocket images must use `live.staticflickr.com` URLs. Wikimedia (`upload.wikimedia.org`) and NASA CDN (`images-assets.nasa.gov`) are blocked when the app is opened via `file://`. All `<img>` tags use `loading="eager"` — `loading="lazy"` is broken on `file://` because the lazy-load `IntersectionObserver` never fires (IO for scroll-reveal of non-image elements works fine). The `onerror` handler always sets `this.onerror=null` first to prevent infinite fallback loops; the chain is finite and re-arms one link at a time via `data-fb`.
 
-Flickr full-size URLs follow the pattern `https://live.staticflickr.com/{server}/{photo_id}_{secret}_b.jpg`. The `_b` suffix is the 1024px size; omitting it gives a smaller default. Every URL in `VEHICLE_IMGS` was verified live (HTTP 200, image/jpeg) — do not add unverified Flickr IDs; they 404. Same rule for `VEHICLE_CLIPS` YouTube ids: each was verified via oEmbed + no embedding restriction.
+Flickr full-size URLs follow the pattern `https://live.staticflickr.com/{server}/{photo_id}_{secret}_b.jpg`. The `_b` suffix is the 1024px size; omitting it gives a smaller default. Every URL in `VEHICLE_IMGS` was verified live (HTTP 200, image/jpeg) — do not add unverified Flickr IDs; they 404. Same rule for `VEHICLE_CLIPS` YouTube ids: each was verified via oEmbed. `VEHICLE_CLIPS` prefers **commentary-free** flight footage (onboard/booster-cam, official clean feeds, "No Commentary" uploads); 9 of 14 vehicles have verified clean clips, the other 5 (Starship, Electron, PSLV/LVM3, Firefly Alpha, H3) are marked `webcast` inline — no clean standalone clip was found, swap the id if you find one.
 
 ## YouTube embedding: file:// vs http
 

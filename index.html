@@ -2250,7 +2250,7 @@ function ll2Crew(raw) {
   const crew = [];
   for (const st of stages) for (const c of (st?.launch_crew || [])) {
     const name = c?.astronaut?.name;
-    if (name) crew.push({ name, role: txt(c?.role?.title || c?.role?.role, 'Crew'), agency: txt(c?.astronaut?.agency?.name, '') });
+    if (name) crew.push({ name, role: txt(c?.role?.role || c?.role?.title, 'Crew'), agency: txt(c?.astronaut?.agency?.abbrev || c?.astronaut?.agency?.name, '') });
   }
   return crew.length ? crew : null;
 }
@@ -3935,26 +3935,28 @@ function drawLocator(canvas, lat, lon) {
    Sources: API youtube_vidid (real webcast/replay) → curated
    per-vehicle archive clip. Posters stay on the Flickr CDN.
    ════════════════════════════════════════════════════════════════ */
-/* Curated archive footage per vehicle — used when a launch has no
-   real API webcast/replay id (the whole offline/seed path). Every id
-   was verified embeddable (oEmbed 200, no embedding restriction) from
-   an official or authoritative channel. Ordered most-specific first,
-   mirroring VEHICLE_IMGS, since resolveFeed takes the first match. */
+/* Curated per-vehicle archive footage — shown when a launch has no real
+   API webcast id (the seed/offline path, and LL2 launches). Preference is
+   COMMENTARY-FREE flight footage (onboard/booster-cam, official clean feeds,
+   or "No Commentary" uploads); every id was verified via YouTube oEmbed
+   (embeddable, live). Ordered most-specific first, mirroring VEHICLE_IMGS.
+   The 5 marked `webcast` had no verified clean standalone clip — swap the id
+   if you find a cleaner one; the app plays whatever id is here. */
 const VEHICLE_CLIPS = [
-  { m: ['starship'],             id: 'U4alF1JasLo', t: 'Starship' },
-  { m: ['falcon heavy'],         id: 'wNo6A3th9WU', t: 'Falcon Heavy' },
-  { m: ['falcon'],               id: '1sGWUunA2mM', t: 'Falcon 9' },
-  { m: ['new glenn'],            id: 'oqW1OjVepCk', t: 'New Glenn' },
-  { m: ['new shepard'],          id: '-T_hA6mPiIY', t: 'New Shepard' },
-  { m: ['electron', 'haste'],    id: 'nJZ5Fux95DI', t: 'Electron' },
-  { m: ['long march'],           id: 'vJGToVZS-5w', t: 'Long March' },
-  { m: ['atlas'],                id: 'uhfwTfUseVw', t: 'Atlas V' },
-  { m: ['vulcan'],               id: '7rftsSmvefY', t: 'Vulcan Centaur' },
-  { m: ['ariane'],               id: 'HsaT6Ps79Bo', t: 'Ariane 6' },
-  { m: ['soyuz'],                id: 'SobHsVuwpgI', t: 'Soyuz' },
-  { m: ['pslv', 'gslv', 'lvm3'], id: 'q2ueCg9bvvQ', t: 'LVM3' },
-  { m: ['alpha'],                id: 'BntCkCRc55c', t: 'Firefly Alpha' },
-  { m: ['h3'],                   id: 'HSiaGTea1rc', t: 'H3' },
+  { m: ['starship'],             id: 'U4alF1JasLo', t: 'Starship' },      // webcast (no clean clip found)
+  { m: ['falcon heavy'],         id: '3ysXW_WFvWY', t: 'Falcon Heavy' },  // clean · GOES-U boostback + landing
+  { m: ['falcon'],               id: 'oZvtx0FEhxI', t: 'Falcon 9' },      // clean · onboard camera (SWOT)
+  { m: ['new glenn'],            id: '6D5rZHJpqq0', t: 'New Glenn' },      // clean · takeoff and landing
+  { m: ['new shepard'],          id: 'wQj_hQqmNFc', t: 'New Shepard' },   // clean · launch footage
+  { m: ['electron', 'haste'],    id: 'nJZ5Fux95DI', t: 'Electron' },      // webcast (no clean clip found)
+  { m: ['long march'],           id: 'QOT4CBR6ryg', t: 'Long March' },    // clean · no-commentary feed
+  { m: ['atlas'],                id: 'vqwKT3wMx1c', t: 'Atlas V' },        // clean · launch footage
+  { m: ['vulcan'],               id: 'n6C0yzWuTWk', t: 'Vulcan Centaur' },// clean · CERT-2 launch (SciNews)
+  { m: ['ariane'],               id: '7FfRWnH8RyI', t: 'Ariane 6' },      // clean · ESA official liftoff
+  { m: ['soyuz'],                id: 'KMmcrQR_nwA', t: 'Soyuz' },         // clean · no-commentary feed
+  { m: ['pslv', 'gslv', 'lvm3'], id: 'q2ueCg9bvvQ', t: 'LVM3' },          // webcast (no clean clip found)
+  { m: ['alpha'],                id: 'BntCkCRc55c', t: 'Firefly Alpha' }, // webcast (no clean clip found)
+  { m: ['h3'],                   id: 'HSiaGTea1rc', t: 'H3' },            // webcast (no clean clip found)
 ];
 const FEED = { launchId: null, video: null, mode: null };   // mode: 'inline' | 'pip'
 /* YouTube iframes reject a null origin (Error 153) — they will not play
@@ -4619,8 +4621,10 @@ async function loadSpaceWeather() {
   if (cached) { Object.assign(SPACEWX, cached, { state: 'ok' }); return afterSpaceWx(); }
   SPACEWX.state = 'loading';
   try {
-    const rows = await fetchJSON(API.swpcKp, 7000);          // [[time_tag,Kp,a_running,station_count], …] — row 0 is the header
-    const data = (Array.isArray(rows) ? rows.slice(1) : []).map(r => ({ t: r[0], kp: parseFloat(r[1]) })).filter(x => Number.isFinite(x.kp));
+    const rows = await fetchJSON(API.swpcKp, 7000);          // array of {time_tag,Kp,…} objects (also tolerates a legacy [header,…rows] array form)
+    const data = (Array.isArray(rows) ? rows : [])
+      .map(r => Array.isArray(r) ? { t: r[0], kp: parseFloat(r[1]) } : { t: r.time_tag, kp: parseFloat(r.Kp) })
+      .filter(x => Number.isFinite(x.kp) && /^\d{4}-\d\d-\d\d/.test(String(x.t)));   // drops any header row / bad entries
     if (!data.length) throw new Error('no kp');
     const series = data.slice(-24);
     const last = series[series.length - 1];
