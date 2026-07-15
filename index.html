@@ -8,6 +8,21 @@
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
 <link href="https://fonts.googleapis.com/css2?family=Oxanium:wght@300;400;500;600;700;800&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&family=DM+Sans:opsz,wght@9..40,300;9..40,400;9..40,500;9..40,600&display=swap" rel="stylesheet" />
+<!-- PWA: installable app (active when served over http/https; ignored from file://) -->
+<link rel="manifest" href="manifest.webmanifest" />
+<meta name="theme-color" content="#05070d" />
+<link rel="icon" href="icons/favicon-32.png" sizes="32x32" type="image/png" />
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Mission Control" />
+<!-- Social/link preview -->
+<meta property="og:title" content="Mission Control — Live Launch Tracker" />
+<meta property="og:description" content="Live rocket-launch countdowns, an interactive globe, mission briefings, and space weather." />
+<meta property="og:type" content="website" />
+<meta property="og:image" content="icons/icon-512.png" />
+<meta name="twitter:card" content="summary" />
 <style>
 /* ═══════════════════════════════════════════════════════════════
    MISSION CONTROL — orbital operations console
@@ -341,6 +356,14 @@ main {
 .hero.imminent .hero-state { border-color: var(--amber); background: color-mix(in srgb, var(--amber) 12%, transparent); }
 .hero.launched .hero-state { border-color: var(--green); background: color-mix(in srgb, var(--green) 12%, transparent); }
 .hero.imminent .hero-state { animation: state-pulse 1.2s ease-in-out infinite; }
+.hero-live-badge {
+  font-family: var(--fm); font-size: 0.62rem; font-weight: 700; letter-spacing: 0.16em;
+  color: #04140c; background: var(--green); border-radius: 4px; padding: 3px 8px;
+  animation: state-pulse 1.3s ease-in-out infinite;
+}
+.hero-live-btn { border-color: color-mix(in srgb, var(--green) 55%, transparent) !important; color: var(--green) !important; }
+.hero-live-btn:hover { background: color-mix(in srgb, var(--green) 14%, transparent) !important; }
+.hero-live-frame { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; display: block; z-index: 2; background: #000; }
 @keyframes state-pulse { 0%,100% { opacity: 1; } 50% { opacity: 0.55; } }
 
 .hero-title {
@@ -1561,6 +1584,9 @@ main {
     <button class="icon-btn" id="help-btn" aria-label="Keyboard shortcuts" title="Keyboard shortcuts (?)">
       <span aria-hidden="true">?</span>
     </button>
+    <button class="icon-btn" id="install-btn" aria-label="Install Mission Control app" title="Install app" hidden>
+      <span aria-hidden="true">⇩</span><span class="btn-txt">INSTALL</span>
+    </button>
     <button class="icon-btn" id="theme-btn" aria-label="Switch to light theme" aria-pressed="false">
       <span id="theme-glyph" aria-hidden="true">◐</span>
     </button>
@@ -2254,6 +2280,13 @@ function ll2Crew(raw) {
   }
   return crew.length ? crew : null;
 }
+function ll2Webcast(raw) {   // the official live/webcast YouTube id (kept separate from the clean dossier clip)
+  for (const v of (raw.vidURLs || raw.vid_urls || [])) {
+    const m = /(?:[?&]v=|youtu\.be\/|\/live\/|\/embed\/)([\w-]{11})/.exec((v && v.url) || '');
+    if (m) return m[1];
+  }
+  return null;
+}
 function normalizeLL2(raw, isPast) {
   const net = raw.net ? Date.parse(raw.net) : NaN;
   const winS = raw.window_start ? Date.parse(raw.window_start) : net;
@@ -2286,7 +2319,8 @@ function normalizeLL2(raw, isPast) {
     windowEnd: Number.isFinite(winE) ? winE : null,
     status: ll2Status(raw.status?.abbrev),
     image: null,                            // keep the verified Flickr image chain (LL2 CDN unverified on file://)
-    video: null,
+    video: null,                            // dossier feed stays the clean archive clip
+    webcast: ll2Webcast(raw),               // the real live stream — used only by the hero LIVE state
     orbit, payloadInfo: null, customer: null, booster: null, program,
     crew: ll2Crew(raw),
     probability: prob,                      // official go probability (0–100) or null
@@ -2522,8 +2556,15 @@ function requestNotifyPermission() {
 }
 function notify(title, body) {
   try {
-    if ('Notification' in window && Notification.permission === 'granted') new Notification(title, { body, silent: false });
-  } catch { /* ignore */ }
+    if (!('Notification' in window) || Notification.permission !== 'granted') return;
+    const opts = { body, icon: 'icons/icon-192.png', badge: 'icons/icon-192.png', tag: 'mc-launch', renotify: true, silent: false };
+    // prefer the service worker's persistent notification (survives backgrounding / install); fall back to a page Notification
+    if (navigator.serviceWorker && navigator.serviceWorker.ready) {
+      navigator.serviceWorker.ready.then(reg => reg.showNotification(title, opts)).catch(() => { try { new Notification(title, opts); } catch { /* ignore */ } });
+    } else {
+      new Notification(title, opts);
+    }
+  } catch { /* file:// or blocked */ }
 }
 
 /* ── Add to calendar (.ics) — generated & downloaded client-side ── */
@@ -2696,6 +2737,23 @@ function heroStateChange(st) {
     if (cap) cap.textContent = 'T-MINUS TO LAUNCH';
   }
 }
+/* LIVE mode — surface the real webcast around T-0. A launch is "live" from
+   T-20m through T+2h (or while flagged in-flight); heroLiveId prefers the LL2
+   webcast, then a rocketlaunch.live id. Playing embeds inline (http) or opens
+   the stream (file://) — this is the actual broadcast, not the archive clip. */
+function heroLiveId(l) { return (l && (l.webcast || l.video)) || null; }
+function inLiveWindow(l) {
+  if (!l || l.isPast || !Number.isFinite(l.net)) return false;
+  if (l.status === 'inflight') return true;
+  const now = Date.now();
+  const end = (Number.isFinite(l.windowEnd) ? l.windowEnd : l.net) + 2 * HOUR;
+  return now >= l.net - 20 * MIN && now <= end;
+}
+function watchLiveHero(id) {
+  const media = $('#hero .hero-media'); if (!media || !id) return;
+  if (!CAN_EMBED) { window.open('https://www.youtube.com/watch?v=' + id, '_blank', 'noopener'); return; }
+  media.innerHTML = `<iframe class="hero-live-frame" src="https://www.youtube-nocookie.com/embed/${esc(id)}?autoplay=1&rel=0" title="Live launch webcast" frameborder="0" allow="autoplay; encrypted-media; picture-in-picture" allowfullscreen></iframe>`;
+}
 function renderHero() {
   const slot = $('#hero-slot');
   const l = S.upcoming.find(u => Number.isFinite(u.net)) || null;
@@ -2704,10 +2762,12 @@ function renderHero() {
   loadForecast(l);                                    // real forecast for the next launch, if within range
   const color = provColor(l.provider);
   const ws = l.windowStart ?? l.net, we = l.windowEnd;
+  const liveId = inLiveWindow(l) ? heroLiveId(l) : null;
   slot.innerHTML = `
-  <article class="hero" id="hero" style="--prov:${color}">
+  <article class="hero${liveId ? ' hero-live' : ''}" id="hero" style="--prov:${color}">
     <div class="hero-info">
       <div class="hero-eyebrow">
+        ${liveId ? '<span class="hero-live-badge">● LIVE</span>' : ''}
         <span class="hero-state" id="hero-state">NEXT LAUNCH</span>
         <span>${esc(fmtUTC(l.net))}</span>
       </div>
@@ -2728,6 +2788,7 @@ function renderHero() {
         <div class="hw-track"><div class="hw-fill" id="hw-fill"></div></div>
       </div>
       <div style="display:flex;flex-wrap:wrap;gap:10px">
+        ${liveId ? `<button class="tl-open-btn hero-live-btn" data-live-watch="${esc(liveId)}">▶ Watch Live</button>` : ''}
         <button class="tl-open-btn" data-open-modal="${esc(l.id)}">Open Dossier →</button>
         <button class="tl-open-btn" data-clock="${esc(l.id)}">◎ Mission Clock</button>
       </div>
@@ -4828,8 +4889,9 @@ document.addEventListener('click', e => {
   if (e.target === $('#modal')) { closeModal(); return; }
   if (e.target === $('#palette')) { closePalette(); return; }
   if (e.target === $('#shortcuts') || e.target === $('#alerts-dialog')) { closeSheet(); return; }
-  const t = e.target.closest('[data-tab],[data-open-modal],[data-launch],[data-prov-chip],[data-st-chip],[data-clear-filters],[data-range],[data-expand],[data-co-provider],[data-mstep],[data-pal-idx],[data-feed-play],[data-feed-pip],[data-feed-dock],[data-star],[data-watch-filter],[data-ics],[data-clock],[data-sat],#sat-locate,#density-btn,#search-btn,#theme-btn,#tz-btn,#alerts-btn,#help-btn,#sc-close,#al-close,#clock-close,#clock-fs,#clock-audio,#m-close,#gs-close,#pip-close,#pip-expand');
+  const t = e.target.closest('[data-tab],[data-open-modal],[data-launch],[data-prov-chip],[data-st-chip],[data-clear-filters],[data-range],[data-expand],[data-co-provider],[data-mstep],[data-pal-idx],[data-feed-play],[data-feed-pip],[data-feed-dock],[data-live-watch],[data-star],[data-watch-filter],[data-ics],[data-clock],[data-sat],#sat-locate,#density-btn,#search-btn,#theme-btn,#tz-btn,#alerts-btn,#help-btn,#sc-close,#al-close,#clock-close,#clock-fs,#clock-audio,#m-close,#gs-close,#pip-close,#pip-expand');
   if (!t) return;
+  if (t.dataset.liveWatch) { watchLiveHero(t.dataset.liveWatch); return; }
   if (t.dataset.sat !== undefined) { openSatPanel(t.dataset.sat); return; }
   if (t.id === 'sat-locate') { findMyPass(); return; }
   if (t.dataset.clock !== undefined) { openClock(t.dataset.clock, t); return; }
@@ -4975,8 +5037,35 @@ window.addEventListener('resize', debounce(() => {
 /* ════════════════════════════════════════════════════════════════
    §18 BOOT — paint seed instantly, then upgrade to live silently.
    ════════════════════════════════════════════════════════════════ */
+/* ── PWA: service worker registration + install affordance (http/https only) ── */
+let deferredInstall = null;
+if ('serviceWorker' in navigator && location.protocol.startsWith('http')) {
+  addEventListener('load', () => navigator.serviceWorker.register('sw.js').catch(() => { /* SW optional */ }));
+}
+addEventListener('beforeinstallprompt', e => {
+  e.preventDefault(); deferredInstall = e;
+  const b = $('#install-btn'); if (b) b.hidden = false;
+});
+addEventListener('appinstalled', () => { const b = $('#install-btn'); if (b) b.hidden = true; deferredInstall = null; });
+function initPWA() {
+  const b = $('#install-btn'); if (!b) return;
+  const ua = navigator.userAgent;
+  const isiOS = /iphone|ipad|ipod/i.test(ua) && !/(crios|fxios|edgios)/i.test(ua);
+  const standalone = matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+  if (isiOS && !standalone) b.hidden = false;            // iOS gives no beforeinstallprompt — show a manual "Add to Home Screen" hint
+  b.addEventListener('click', async () => {
+    if (deferredInstall) {
+      deferredInstall.prompt();
+      try { await deferredInstall.userChoice; } catch { /* dismissed */ }
+      deferredInstall = null; b.hidden = true;
+    } else if (isiOS) {
+      toast('Install Mission Control', 'Tap the Share icon, then “Add to Home Screen”.', '⇩', 12000);
+    }
+  });
+}
 function boot() {
   initTheme();
+  initPWA();
   loadWatch();
   loadTz();
   loadAlertPrefs();
