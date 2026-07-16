@@ -1192,13 +1192,16 @@ git commit -m "feat(widget): home-screen builders, family dispatch, refresh hint
 - [ ] **Step 1: Add failing tests**
 
 ```js
-test('main in widget mode builds for the reported family and sets the widget', async () => {
+test('auto-run under runsInWidget fires main() safely at load and sets a widget', async () => {
   const { exports: W, ctx } = loadWidget({
     config: { runsInWidget: true, runsInApp: false, widgetFamily: 'accessoryRectangular' },
   });
-  // loadWidget auto-ran main() at parse time because runsInWidget=true —
-  // stage the response BEFORE loading instead:
   assert.ok(W.main, 'main must be exported');
+  // main() auto-ran at parse time with no staged response → loadLaunches
+  // fails → SIGNAL LOST widget must still be built and set (async chain):
+  await new Promise(r => setTimeout(r, 0));
+  assert.equal(ctx.__setWidgetCalls.length, 1);
+  assert.ok(texts(ctx.__setWidgetCalls[0]).includes('SIGNAL LOST'));
 });
 
 test('main (widget mode, invoked directly) sets exactly one widget', async () => {
