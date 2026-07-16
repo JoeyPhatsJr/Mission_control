@@ -400,9 +400,9 @@ test('makeWidget: every family renders the current mission', async () => {
   for (const fam of ['accessoryRectangular', 'accessoryCircular', 'accessoryInline', 'small', 'medium', 'large']) {
     vfs.clear(); setNextResponse(FIXTURE);
     const w = await W.makeWidget(fam, NOW);
-    const all = texts(w).join(' ');
+    const all = texts(w).join(' ').toUpperCase();   // buildLockRect uppercases the name
     const drawn = flatten(w).filter(e => e.type === 'image');
-    assert.ok(all.includes('Starlink') || drawn.length > 0, fam + ' rendered nothing');
+    assert.ok(all.includes('STARLINK') || drawn.length > 0, fam + ' rendered nothing');
   }
 });
 
