@@ -255,5 +255,76 @@ test('loadLaunches: failure with no cache → signal lost; empty payload treated
   assert.equal((await W.loadLaunches(NOW)).launches, null);
 });
 
+function mkLaunch(over = {}) {
+  return { id: 'll2-t1', name: 'Starlink Group 12-31', provider: 'SpaceX', vehicle: 'Falcon 9 Block 5', padName: 'Space Launch Complex 40', country: 'USA', net: NOW + 4 * 3600000, windowEnd: NaN, statusAbbrev: 'Go', probability: 95, ...over };
+}
+
+test('countdownRow: ticking native timer with T− prefix; T+ after net; ~ for TBD', () => {
+  const { exports: W, ctx } = loadWidget();
+  const w1 = new ctx.ListWidget();
+  W.countdownRow(w1, mkLaunch(), 20, NOW);
+  const dates1 = flatten(w1).filter(e => e.type === 'date');
+  assert.equal(dates1.length, 1);
+  assert.equal(dates1[0].style, 'timer');
+  assert.equal(dates1[0].date.getTime(), NOW + 4 * 3600000);
+  assert.ok(texts(w1).includes('T−'));
+  const w2 = new ctx.ListWidget();
+  W.countdownRow(w2, mkLaunch({ net: NOW - 5 * 60000 }), 20, NOW);
+  assert.ok(texts(w2).includes('T+'));
+  const w3 = new ctx.ListWidget();
+  W.countdownRow(w3, mkLaunch({ statusAbbrev: 'TBD' }), 20, NOW);
+  assert.equal(flatten(w3).filter(e => e.type === 'date').length, 0);
+  assert.ok(texts(w3).some(t => t.startsWith('~ NET ')));
+});
+
+test('goColor thresholds', () => {
+  const { exports: W } = loadWidget();
+  assert.equal(W.goColor(95).hex, '#4ade80');
+  assert.equal(W.goColor(80).hex, '#4ade80');
+  assert.equal(W.goColor(60).hex, '#fbbf24');
+  assert.equal(W.goColor(20).hex, '#f87171');
+  assert.equal(W.goColor(null).hex, '#94a3b8');
+});
+
+test('buildLockRect: name line, timer, vehicle·pad line, cached marker', () => {
+  const { exports: W, ctx } = loadWidget();
+  const w = new ctx.ListWidget();
+  W.buildLockRect(w, mkLaunch(), { now: NOW, cachedAt: null, queue: [] });
+  const ts = texts(w);
+  assert.ok(ts.some(t => t.includes('STARLINK GROUP 12-31')));
+  assert.ok(ts.some(t => t.includes('Falcon 9 Block 5') && t.includes('SLC-40')));
+  assert.equal(flatten(w).filter(e => e.type === 'date' && e.style === 'timer').length, 1);
+  const w2 = new ctx.ListWidget();
+  W.buildLockRect(w2, mkLaunch(), { now: NOW, cachedAt: NOW - 3600000, queue: [] });
+  assert.ok(texts(w2).some(t => t.includes('cached')));
+});
+
+test('buildLockCircle: single drawn image containing the coarse readout', () => {
+  const { exports: W, ctx } = loadWidget();
+  const w = new ctx.ListWidget();
+  W.buildLockCircle(w, mkLaunch(), { now: NOW, cachedAt: null, queue: [] });
+  const imgs = flatten(w).filter(e => e.type === 'image');
+  assert.equal(imgs.length, 1);
+  assert.deepEqual(imgs[0].img.textCalls, ['T−4h']);   // drawn centered readout
+  assert.equal(w.addAccessoryWidgetBackground, true);
+});
+
+test('buildLockInline: one line with name and fine T-minus', () => {
+  const { exports: W, ctx } = loadWidget();
+  const w = new ctx.ListWidget();
+  W.buildLockInline(w, mkLaunch(), { now: NOW, cachedAt: null, queue: [] });
+  const ts = texts(w);
+  assert.equal(ts.length, 1);
+  assert.ok(ts[0].includes('Starlink Group 12-31'));
+  assert.ok(ts[0].includes('T−4h 0m'));
+});
+
+test('buildMessage renders title + subtitle', () => {
+  const { exports: W, ctx } = loadWidget();
+  const w = new ctx.ListWidget();
+  W.buildMessage(w, 'SIGNAL LOST', 'open app to sync');
+  assert.deepEqual(texts(w), ['SIGNAL LOST', 'open app to sync']);
+});
+
 export { FIXTURE };
 await run();

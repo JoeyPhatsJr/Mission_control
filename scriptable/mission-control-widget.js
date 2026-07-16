@@ -146,10 +146,118 @@ async function loadLaunches(now) {
   }
 }
 
+/* ── Shared UI ───────────────────────────────────────────────────── */
+const UI = {
+  bg: Color.dynamic(new Color('#f4f6fb'), new Color('#0a0e14')),
+  text: Color.dynamic(new Color('#111827'), new Color('#e5efff')),
+  dim: Color.dynamic(new Color('#6b7280'), new Color('#8b98ad')),
+  accent: new Color('#38bdf8'),
+};
+function goColor(p) {
+  if (p == null) return new Color('#94a3b8');
+  return new Color(p >= 80 ? '#4ade80' : p >= 50 ? '#fbbf24' : '#f87171');
+}
+
+/* The ONE live element iOS re-renders every second is a date element in
+   timer style — everything else (text, drawings) is frozen between widget
+   refreshes (~15–30 min). Countdown = native timer, always. */
+function countdownRow(parent, l, size, now) {
+  const row = parent.addStack();
+  row.bottomAlignContent();
+  if (isTBD(l)) {
+    const t = row.addText('~ NET ' + fmtDate(l.net));
+    t.font = Font.boldMonospacedSystemFont(Math.round(size * 0.8));
+    t.textColor = UI.text; t.lineLimit = 1; t.minimumScaleFactor = 0.5;
+    return row;
+  }
+  const pre = row.addText(now >= l.net ? 'T+' : 'T−');
+  pre.font = Font.boldMonospacedSystemFont(Math.round(size * 0.62));
+  pre.textColor = UI.text;
+  row.addSpacer(3);
+  const timer = row.addDate(new Date(l.net));
+  timer.applyTimerStyle();
+  timer.font = Font.boldMonospacedSystemFont(size);
+  timer.textColor = UI.text; timer.lineLimit = 1; timer.minimumScaleFactor = 0.5;
+  return row;
+}
+function staleStamp(parent, cachedAt) {
+  if (!cachedAt) return;
+  const d = new Date(cachedAt);
+  const t = parent.addText('cached ' + String(d.getHours()).padStart(2, '0') + ':' + String(d.getMinutes()).padStart(2, '0'));
+  t.font = Font.systemFont(9); t.textColor = UI.dim;
+}
+function buildMessage(w, title, sub) {
+  const t = w.addText(title);
+  t.font = Font.semiboldSystemFont(13); t.textColor = UI.text; t.lineLimit = 1; t.minimumScaleFactor = 0.6;
+  const s = w.addText(sub);
+  s.font = Font.systemFont(11); s.textColor = UI.dim; s.lineLimit = 2;
+}
+
+/* ── Drawn accents (stale-tolerant decorations only) ─────────────── */
+function ringImage(frac, msTo, px) {
+  const ctx = new DrawContext();
+  ctx.size = new Size(px, px); ctx.opaque = false; ctx.respectScreenScale = true;
+  const lw = Math.max(4, px * 0.08), r = (px - lw) / 2, cx = px / 2, cy = px / 2;
+  ctx.setLineWidth(lw);
+  ctx.setStrokeColor(new Color('#ffffff', 0.3));
+  ctx.strokeEllipse(new Rect(lw / 2, lw / 2, px - lw, px - lw));
+  const f = Math.min(1, Math.max(0, frac));
+  if (f > 0.01) {
+    ctx.setStrokeColor(new Color('#ffffff'));
+    const path = new Path();
+    const steps = Math.max(2, Math.round(90 * f));
+    for (let i = 0; i <= steps; i++) {
+      const a = -Math.PI / 2 + 2 * Math.PI * f * (i / steps);
+      const pt = new Point(cx + r * Math.cos(a), cy + r * Math.sin(a));
+      if (i === 0) path.move(pt); else path.addLine(pt);
+    }
+    ctx.addPath(path);
+    ctx.strokePath();
+  }
+  ctx.setTextAlignedCenter();
+  ctx.setTextColor(new Color('#ffffff'));
+  ctx.setFont(Font.boldSystemFont(Math.round(px * 0.22)));
+  ctx.drawTextInRect(fmtTminus(msTo), new Rect(0, cy - px * 0.13, px, px * 0.3));
+  return ctx.getImage();
+}
+function barImage(hex, wpx, hpx) {
+  const ctx = new DrawContext();
+  ctx.size = new Size(wpx, hpx); ctx.opaque = false; ctx.respectScreenScale = true;
+  ctx.setFillColor(new Color(hex));
+  const p = new Path();
+  p.addRoundedRect(new Rect(0, 0, wpx, hpx), wpx / 2, wpx / 2);
+  ctx.addPath(p);
+  ctx.fillPath();
+  return ctx.getImage();
+}
+
+/* ── Lock Screen builders (system-tinted; no color decisions) ────── */
+function buildLockRect(w, l, meta) {
+  const t1 = w.addText('\u{1F680} ' + l.name.toUpperCase());
+  t1.font = Font.semiboldSystemFont(12); t1.lineLimit = 1; t1.minimumScaleFactor = 0.7;
+  countdownRow(w, l, 20, meta.now);
+  const t3 = w.addText(l.vehicle + ' · ' + padShort(l.padName) + (meta.cachedAt ? ' · cached' : ''));
+  t3.font = Font.systemFont(10); t3.lineLimit = 1; t3.minimumScaleFactor = 0.7;
+}
+function buildLockCircle(w, l, meta) {
+  w.addAccessoryWidgetBackground = true;
+  const msTo = l.net - meta.now;
+  const frac = 1 - msTo / 86400000;          // ring fills over the final 24 h
+  const img = w.addImage(ringImage(frac, msTo, 76));
+  img.centerAlignImage();
+}
+function buildLockInline(w, l, meta) {
+  const t = w.addText('\u{1F680} ' + l.name + ' · ' +
+    (isTBD(l) ? '~ ' + fmtDate(l.net) : fmtTminusFine(l.net - meta.now)));
+  t.lineLimit = 1;
+}
+
 if (typeof module !== 'undefined' && module.exports !== undefined) {
   module.exports = {
     CONFIG, provColor, normalize, padCountry, padShort,
     isTBD, fmtDate, fmtTminus, fmtTminusFine, deepLink, pickLaunch,
     loadLaunches, readCache, writeCache, cachePath,
+    UI, goColor, countdownRow, staleStamp, buildMessage, ringImage, barImage,
+    buildLockRect, buildLockCircle, buildLockInline,
   };
 }
