@@ -53,6 +53,7 @@ function normalize(raw) {
   const name = String(raw.mission?.name || '') ||
     (rawName.includes('|') ? rawName.split('|').pop().trim() : rawName);
   const prob = Number.isFinite(raw.probability) && raw.probability >= 0 ? raw.probability : null;
+  const winE = raw.window_end ? Date.parse(raw.window_end) : NaN;
   return {
     id: 'll2-' + String(raw.id),
     name,
@@ -61,7 +62,7 @@ function normalize(raw) {
     padName: String(raw.pad?.name || 'TBD'),
     country: padCountry(raw),
     net,
-    windowEnd: raw.window_end ? Date.parse(raw.window_end) : NaN,
+    windowEnd: Number.isFinite(winE) ? winE : null,
     statusAbbrev: String(raw.status?.abbrev || ''),
     probability: prob,
   };
@@ -161,23 +162,25 @@ function goColor(p) {
 /* The ONE live element iOS re-renders every second is a date element in
    timer style — everything else (text, drawings) is frozen between widget
    refreshes (~15–30 min). Countdown = native timer, always. */
-function countdownRow(parent, l, size, now) {
+function countdownRow(parent, l, size, now, plain) {
   const row = parent.addStack();
   row.bottomAlignContent();
   if (isTBD(l)) {
     const t = row.addText('~ NET ' + fmtDate(l.net));
     t.font = Font.boldMonospacedSystemFont(Math.round(size * 0.8));
-    t.textColor = UI.text; t.lineLimit = 1; t.minimumScaleFactor = 0.5;
+    if (!plain) t.textColor = UI.text;
+    t.lineLimit = 1; t.minimumScaleFactor = 0.5;
     return row;
   }
   const pre = row.addText(now >= l.net ? 'T+' : 'T−');
   pre.font = Font.boldMonospacedSystemFont(Math.round(size * 0.62));
-  pre.textColor = UI.text;
+  if (!plain) pre.textColor = UI.text;
   row.addSpacer(3);
   const timer = row.addDate(new Date(l.net));
   timer.applyTimerStyle();
   timer.font = Font.boldMonospacedSystemFont(size);
-  timer.textColor = UI.text; timer.lineLimit = 1; timer.minimumScaleFactor = 0.5;
+  if (!plain) timer.textColor = UI.text;
+  timer.lineLimit = 1; timer.minimumScaleFactor = 0.5;
   return row;
 }
 function staleStamp(parent, cachedAt) {
@@ -194,7 +197,7 @@ function buildMessage(w, title, sub) {
 }
 
 /* ── Drawn accents (stale-tolerant decorations only) ─────────────── */
-function ringImage(frac, msTo, px) {
+function ringImage(frac, label, px) {
   const ctx = new DrawContext();
   ctx.size = new Size(px, px); ctx.opaque = false; ctx.respectScreenScale = true;
   const lw = Math.max(4, px * 0.08), r = (px - lw) / 2, cx = px / 2, cy = px / 2;
@@ -217,7 +220,7 @@ function ringImage(frac, msTo, px) {
   ctx.setTextAlignedCenter();
   ctx.setTextColor(new Color('#ffffff'));
   ctx.setFont(Font.boldSystemFont(Math.round(px * 0.22)));
-  ctx.drawTextInRect(fmtTminus(msTo), new Rect(0, cy - px * 0.13, px, px * 0.3));
+  ctx.drawTextInRect(String(label), new Rect(0, cy - px * 0.13, px, px * 0.3));
   return ctx.getImage();
 }
 function barImage(hex, wpx, hpx) {
@@ -235,15 +238,16 @@ function barImage(hex, wpx, hpx) {
 function buildLockRect(w, l, meta) {
   const t1 = w.addText('\u{1F680} ' + l.name.toUpperCase());
   t1.font = Font.semiboldSystemFont(12); t1.lineLimit = 1; t1.minimumScaleFactor = 0.7;
-  countdownRow(w, l, 20, meta.now);
+  countdownRow(w, l, 20, meta.now, true);
   const t3 = w.addText(l.vehicle + ' · ' + padShort(l.padName) + (meta.cachedAt ? ' · cached' : ''));
   t3.font = Font.systemFont(10); t3.lineLimit = 1; t3.minimumScaleFactor = 0.7;
 }
 function buildLockCircle(w, l, meta) {
   w.addAccessoryWidgetBackground = true;
   const msTo = l.net - meta.now;
-  const frac = 1 - msTo / 86400000;          // ring fills over the final 24 h
-  const img = w.addImage(ringImage(frac, msTo, 76));
+  const tbd = isTBD(l);
+  const frac = tbd ? 0 : 1 - msTo / 86400000;
+  const img = w.addImage(ringImage(frac, tbd ? '~' + fmtDate(l.net) : fmtTminus(msTo), 76));
   img.centerAlignImage();
 }
 function buildLockInline(w, l, meta) {
@@ -334,7 +338,7 @@ function buildHomeLarge(w, l, meta) {
     w.addSpacer(3);
   }
   if (!meta.queue.length) {
-    const none = w.addText('No further ' + (CONFIG.COUNTRY || '') + ' launches tracked');
+    const none = w.addText('No further ' + (CONFIG.COUNTRY ? CONFIG.COUNTRY + ' ' : '') + 'launches tracked');
     none.font = Font.systemFont(11); none.textColor = UI.dim;
   }
   w.addSpacer();
@@ -354,7 +358,8 @@ async function makeWidget(family, now) {
   }
   const { current, queue } = pickLaunch(launches, now);
   if (!current) {
-    buildMessage(w, 'NO ' + (CONFIG.COUNTRY || '') + ' LAUNCHES', 'on the board');
+    if (cachedAt) buildMessage(w, 'SIGNAL LOST', 'data stale — open app to sync');
+    else buildMessage(w, 'NO ' + (CONFIG.COUNTRY ? CONFIG.COUNTRY + ' ' : '') + 'LAUNCHES', 'on the board');
     w.refreshAfterDate = new Date(now + 15 * 60000);
     return w;
   }
@@ -407,7 +412,7 @@ async function main(nowOverride) {
 }
 
 if (typeof config !== 'undefined' && (config.runsInWidget || config.runsInApp)) {
-  main();
+  main().catch(e => console.error(e));
 }
 
 if (typeof module !== 'undefined' && module.exports !== undefined) {

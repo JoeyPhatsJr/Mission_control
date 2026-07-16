@@ -256,7 +256,7 @@ test('loadLaunches: failure with no cache → signal lost; empty payload treated
 });
 
 function mkLaunch(over = {}) {
-  return { id: 'll2-t1', name: 'Starlink Group 12-31', provider: 'SpaceX', vehicle: 'Falcon 9 Block 5', padName: 'Space Launch Complex 40', country: 'USA', net: NOW + 4 * 3600000, windowEnd: NaN, statusAbbrev: 'Go', probability: 95, ...over };
+  return { id: 'll2-t1', name: 'Starlink Group 12-31', provider: 'SpaceX', vehicle: 'Falcon 9 Block 5', padName: 'Space Launch Complex 40', country: 'USA', net: NOW + 4 * 3600000, windowEnd: null, statusAbbrev: 'Go', probability: 95, ...over };
 }
 
 test('countdownRow: ticking native timer with T− prefix; T+ after net; ~ for TBD', () => {
@@ -426,6 +426,44 @@ test('main (widget mode, invoked directly) sets exactly one widget', async () =>
   await W.main(NOW);   // inject the frozen clock — fixture NETs stay "future" forever
   assert.equal(ctx.__setWidgetCalls.length, 1);
   assert.ok(texts(ctx.__setWidgetCalls[0]).includes('Starlink Group 12-31'));
+});
+
+test('makeWidget: stale cache with only flown launches → SIGNAL LOST, not a false empty board', async () => {
+  const { exports: W } = loadWidget();
+  const stale = { at: NOW - 90 * 60000, launches: [{ id: 'll2-old', name: 'Flown', provider: 'SpaceX', vehicle: 'F9', padName: 'SLC-40', country: 'USA', net: NOW - 2 * 3600000, windowEnd: null, statusAbbrev: 'Go', probability: 90 }] };
+  vfs.set('/docs/' + W.CONFIG.CACHE_FILE, JSON.stringify(stale));
+  setNextResponse(new Error('offline'));
+  const w = await W.makeWidget('medium', NOW);
+  const ts = texts(w);
+  assert.ok(ts.includes('SIGNAL LOST'));
+  assert.ok(ts.some(t => t.includes('stale')));
+});
+
+test('lock-screen countdown makes no color decisions; home does', () => {
+  const { exports: W, ctx } = loadWidget();
+  const wl = new ctx.ListWidget();
+  W.buildLockRect(wl, mkLaunch(), { now: NOW, cachedAt: null, queue: [] });
+  const lockDate = flatten(wl).find(e => e.type === 'date');
+  assert.equal(lockDate.textColor, undefined);
+  const wh = new ctx.ListWidget();
+  W.buildHomeSmall(wh, mkLaunch(), { now: NOW, cachedAt: null, queue: [] });
+  const homeDate = flatten(wh).find(e => e.type === 'date');
+  assert.ok(homeDate.textColor);
+});
+
+test('buildLockCircle: TBD launch shows ~date, no confident countdown', () => {
+  const { exports: W, ctx } = loadWidget();
+  const w = new ctx.ListWidget();
+  W.buildLockCircle(w, mkLaunch({ statusAbbrev: 'TBD' }), { now: NOW, cachedAt: null, queue: [] });
+  const img = flatten(w).find(e => e.type === 'image');
+  assert.ok(img.img.textCalls[0].startsWith('~'));
+});
+
+test('buildLockInline: TBD launch shows ~date', () => {
+  const { exports: W, ctx } = loadWidget();
+  const w = new ctx.ListWidget();
+  W.buildLockInline(w, mkLaunch({ statusAbbrev: 'TBD' }), { now: NOW, cachedAt: null, queue: [] });
+  assert.ok(texts(w)[0].includes('~ '));
 });
 
 export { FIXTURE };
