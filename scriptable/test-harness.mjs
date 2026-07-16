@@ -212,5 +212,48 @@ test('pickLaunch filters to US pads, sorts, honors the T+30m grace window', () =
   assert.equal(W.pickLaunch([], NOW).current, null);
 });
 
+test('loadLaunches: fresh cache short-circuits the network', async () => {
+  const { exports: W } = loadWidget();
+  const cached = { at: NOW - 5 * 60000, launches: [{ id: 'll2-x', name: 'Cached', provider: 'SpaceX', vehicle: 'F9', padName: 'SLC-40', country: 'USA', net: NOW + 3600000, windowEnd: NaN, statusAbbrev: 'Go', probability: 90 }] };
+  vfs.set('/docs/' + W.CONFIG.CACHE_FILE, JSON.stringify(cached));
+  setNextResponse(new Error('network must not be touched'));
+  const r = await W.loadLaunches(NOW);
+  assert.equal(r.launches[0].name, 'Cached');
+  assert.equal(r.cachedAt, null);                    // fresh cache is silent
+});
+
+test('loadLaunches: stale cache → fetch, normalize, rewrite cache', async () => {
+  const { exports: W } = loadWidget();
+  vfs.set('/docs/' + W.CONFIG.CACHE_FILE, JSON.stringify({ at: NOW - 60 * 60000, launches: [] }));
+  setNextResponse(FIXTURE);
+  const r = await W.loadLaunches(NOW);
+  assert.equal(r.launches.length, 5);                // 6 results − 1 null-net
+  assert.equal(r.cachedAt, null);
+  const rewritten = JSON.parse(vfs.get('/docs/' + W.CONFIG.CACHE_FILE));
+  assert.equal(rewritten.at, NOW);
+  assert.equal(rewritten.launches.length, 5);
+});
+
+test('loadLaunches: fetch failure falls back to stale cache, stamped', async () => {
+  const { exports: W } = loadWidget();
+  const stale = { at: NOW - 90 * 60000, launches: [{ id: 'll2-y', name: 'Stale', provider: 'ULA', vehicle: 'Vulcan', padName: 'SLC-41', country: 'USA', net: NOW + 7200000, windowEnd: NaN, statusAbbrev: 'Go', probability: null }] };
+  vfs.set('/docs/' + W.CONFIG.CACHE_FILE, JSON.stringify(stale));
+  setNextResponse(new Error('offline'));
+  const r = await W.loadLaunches(NOW);
+  assert.equal(r.launches[0].name, 'Stale');
+  assert.equal(r.cachedAt, stale.at);                // stamped as stale
+});
+
+test('loadLaunches: failure with no cache → signal lost; empty payload treated as failure', async () => {
+  const { exports: W } = loadWidget();
+  setNextResponse(new Error('offline'));
+  assert.equal((await W.loadLaunches(NOW)).launches, null);
+  setNextResponse({ results: [] });                  // empty payload = failure too
+  assert.equal((await W.loadLaunches(NOW)).launches, null);
+  vfs.set('/docs/' + W.CONFIG.CACHE_FILE, '{corrupt json');  // corrupt cache ignored
+  setNextResponse(new Error('offline'));
+  assert.equal((await W.loadLaunches(NOW)).launches, null);
+});
+
 export { FIXTURE };
 await run();

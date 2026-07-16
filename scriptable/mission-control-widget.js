@@ -108,9 +108,48 @@ function pickLaunch(launches, now) {
   return { current: pool[0] || null, queue: pool.slice(1, 1 + CONFIG.QUEUE_LEN) };
 }
 
+/* ── Cache + fetch (LL2 unauth ≈ 15 req/h — cache-first protects it) ── */
+function cachePath() {
+  const fm = FileManager.local();
+  return fm.joinPath(fm.documentsDirectory(), CONFIG.CACHE_FILE);
+}
+function readCache() {
+  try {
+    const fm = FileManager.local();
+    const p = cachePath();
+    if (!fm.fileExists(p)) return null;
+    const o = JSON.parse(fm.readString(p));
+    if (!o || !Number.isFinite(o.at) || !Array.isArray(o.launches)) return null;
+    return o;
+  } catch (e) { return null; }
+}
+function writeCache(launches, now) {
+  try { FileManager.local().writeString(cachePath(), JSON.stringify({ at: now, launches })); }
+  catch (e) { /* cache write is best-effort */ }
+}
+async function loadLaunches(now) {
+  const cached = readCache();
+  if (cached && now - cached.at < CONFIG.CACHE_TTL_MIN * 60000) {
+    return { launches: cached.launches, cachedAt: null };   // fresh: silent
+  }
+  try {
+    const req = new Request(CONFIG.API);
+    req.timeoutInterval = 12;
+    const data = await req.loadJSON();
+    const launches = ((data && data.results) || []).map(normalize).filter(Boolean);
+    if (!launches.length) throw new Error('empty LL2 payload');
+    writeCache(launches, now);
+    return { launches, cachedAt: null };
+  } catch (e) {
+    if (cached) return { launches: cached.launches, cachedAt: cached.at };  // stale, stamped
+    return { launches: null, cachedAt: null };               // signal lost
+  }
+}
+
 if (typeof module !== 'undefined' && module.exports !== undefined) {
   module.exports = {
     CONFIG, provColor, normalize, padCountry, padShort,
     isTBD, fmtDate, fmtTminus, fmtTminusFine, deepLink, pickLaunch,
+    loadLaunches, readCache, writeCache, cachePath,
   };
 }
