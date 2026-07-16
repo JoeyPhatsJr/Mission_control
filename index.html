@@ -850,6 +850,36 @@ main {
   color: var(--text2); text-transform: uppercase;
 }
 .globe-legend span { display: inline-flex; align-items: center; gap: 7px; }
+.globe-next {
+  position: absolute; top: 14px; left: 50%; transform: translateX(-50%); z-index: 5;
+  display: inline-flex; align-items: center; gap: 8px; max-width: min(86%, 520px);
+  background: color-mix(in srgb, var(--bg) 82%, transparent);
+  backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px);
+  border: 1px solid var(--border2); border-radius: 999px;
+  padding: 7px 16px; cursor: pointer; color: var(--text2);
+  font-family: var(--fm); font-size: 0.62rem; letter-spacing: 0.12em; text-transform: uppercase;
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+}
+.globe-next b { color: var(--accent); font-weight: 600; font-variant-numeric: tabular-nums; }
+.globe-next:hover, .globe-next:focus-visible { border-color: var(--accent); color: var(--text); }
+.globe-next.live { border-color: var(--green); }
+.globe-next .gn-live { color: var(--green); animation: state-pulse 1.6s ease-in-out infinite; }
+.globe-layers {
+  position: absolute; right: 14px; bottom: 14px; z-index: 5;
+  display: flex; gap: 6px;
+}
+.gl-chip {
+  font-family: var(--fm); font-size: 0.54rem; letter-spacing: 0.14em;
+  padding: 5px 10px; border-radius: 999px; cursor: pointer;
+  background: color-mix(in srgb, var(--bg) 78%, transparent);
+  border: 1px solid var(--border2); color: var(--dim);
+}
+.gl-chip.on { border-color: var(--accent); color: var(--accent); }
+.gl-chip:hover, .gl-chip:focus-visible { color: var(--text); }
+.hud-pass {
+  font-family: var(--fm); font-size: 0.6rem; letter-spacing: 0.08em; color: var(--green);
+  border-top: 1px solid var(--border2); padding-top: 7px; margin-top: 2px;
+}
 
 .globe-side {
   position: absolute; left: 14px; top: 14px; bottom: 74px; z-index: 6;
@@ -1719,6 +1749,8 @@ main {
         <span><span class="legend-dot" style="background:#fbbf24"></span> TIANGONG</span>
         <span><span class="legend-dot" style="background:#a78bfa"></span> HUBBLE</span>
       </div>
+      <button class="globe-next" id="globe-next" hidden aria-label="Next launch — open dossier"></button>
+      <div class="globe-layers" id="globe-layers" role="group" aria-label="Globe display layers"></div>
       <div class="globe-hud" id="sat-hud" hidden>
         <div class="hud-title">TRACKED CRAFT</div>
         <div class="sat-rows" id="sat-rows"></div>
@@ -3285,7 +3317,49 @@ const GLOBE = {
   world: null, ready: false, failed: false, requested: false, pendingPad: null,
   iss: { sim: false, failCount: 0, timer: null, trail: [], simEpoch: NOW, simRetryAt: 0, pos: null, inflight: false },
   trails: { css: [], hst: [] },   // ground-track history for the simulated craft
+  layers: null,                   // {arcs,trails,terminator,craft} — set by loadGlobeLayers()
+  textured: false,                // real earth texture confirmed loaded (else wireframe look)
+  liveArc: false,                 // a launch-day ascent arc is currently drawn
+  chipTimer: null,                // 1 s NEXT-chip countdown updater (globe tab only)
+  userLoc: null, passCache: null, // geolocation fix (from findMyPass) + cached ISS pass estimate
 };
+/* MC-3 layer toggles — persisted; trails default off on small screens */
+function loadGlobeLayers() {
+  const def = { arcs: true, trails: innerWidth >= 768, terminator: true, craft: true };
+  try { return { ...def, ...JSON.parse(localStorage.getItem('mc2-globe-layers') || '{}') }; }
+  catch { return def; }
+}
+function renderLayerChips() {
+  const wrap = $('#globe-layers'); if (!wrap) return;
+  wrap.innerHTML = [['arcs', 'ARCS'], ['trails', 'TRAILS'], ['terminator', 'NIGHT'], ['craft', 'CRAFT']]
+    .map(([k, lab]) => `<button class="gl-chip${GLOBE.layers[k] ? ' on' : ''}" data-glayer="${k}" aria-pressed="${GLOBE.layers[k]}">${lab}</button>`).join('');
+}
+function toggleGlobeLayer(k) {
+  if (!GLOBE.layers || !(k in GLOBE.layers)) return;
+  GLOBE.layers[k] = !GLOBE.layers[k];
+  try { localStorage.setItem('mc2-globe-layers', JSON.stringify(GLOBE.layers)); } catch { /* blocked */ }
+  renderLayerChips();
+  refreshGlobeData();
+  renderSats();
+}
+/* Real-earth texture is an ENHANCEMENT: preload with CORS first, apply only
+   on success — offline / blocked CDN keeps the wireframe console look, and
+   the material tint must flip to white or the texture renders near-black. */
+const GLOBE_TEX = 'https://unpkg.com/three-globe/example/img/earth-blue-marble.jpg';
+const GLOBE_BUMP = 'https://unpkg.com/three-globe/example/img/earth-topology.png';
+function applyGlobeTexture(world) {
+  const img = new Image();
+  img.crossOrigin = 'anonymous';
+  img.onload = () => {
+    if (!GLOBE.ready || GLOBE.world !== world) return;
+    world.globeImageUrl(GLOBE_TEX).bumpImageUrl(GLOBE_BUMP).showGraticules(false);
+    const mat = world.globeMaterial();
+    mat.color.set('#ffffff'); mat.emissive.set('#000208'); mat.shininess = 8;
+    GLOBE.textured = true;
+  };
+  img.onerror = () => { /* CDN unreachable — wireframe fallback stands */ };
+  img.src = GLOBE_TEX;
+}
 /* Tracked spacecraft. Each is driven by a REAL TLE (propagated with the
    SGP4-lite below) once loadTLEs() resolves; ISS also has a live wheretheiss.at
    fix. The analytic sim params stay as a fallback if TLEs don't load. */
@@ -3399,13 +3473,26 @@ function launchAzimuth(l) {
   return 92;                                        // easterly default
 }
 function globeArcs() {
-  return S.upcoming
-    .filter(l => Number.isFinite(l.pad?.lat) && Number.isFinite(l.pad?.lon))
-    .slice(0, 20)
+  if (!GLOBE.layers.arcs) return [];
+  const hero = S.heroLaunch;
+  const live = hero && inLiveWindow(hero) && Number.isFinite(hero.pad?.lat) && Number.isFinite(hero.pad?.lon);
+  const arcs = S.upcoming
+    .filter(l => Number.isFinite(l.pad?.lat) && Number.isFinite(l.pad?.lon) && !(live && l.id === hero.id))
+    .slice(0, 8)                                    // declutter: near-term launches only
     .map(l => {
       const [endLat, endLng] = gcDest(l.pad.lat, l.pad.lon, launchAzimuth(l), 2600);
       return { startLat: l.pad.lat, startLng: l.pad.lon, endLat, endLng, color: provColor(l.provider), name: l.name };
     });
+  /* launch-day ascent arc: after T-0 it grows downrange with a rough
+     first-stage profile (renderSats re-feeds arcsData on its 5 s tick,
+     so the Globe climbs while the Mission Clock counts up) */
+  if (live) {
+    const tPlus = Math.max(0, (Date.now() - hero.net) / 1000);
+    const dist = tPlus > 0 ? 150 + 3050 * Math.pow(Math.min(tPlus / 540, 1), 1.6) : 2600;
+    const [endLat, endLng] = gcDest(hero.pad.lat, hero.pad.lon, launchAzimuth(hero), dist);
+    arcs.push({ startLat: hero.pad.lat, startLng: hero.pad.lon, endLat, endLng, color: '#34d399', name: '● LIVE — ' + hero.name, live: true });
+  }
+  return arcs;
 }
 function initGlobe() {
   try {
@@ -3421,15 +3508,15 @@ function initGlobe() {
       .pointColor(d => d.color).pointAltitude(d => d.alt).pointRadius(d => d.r)
       .pointLabel(d => d.label)
       .onPointClick(d => { flyTo(d.lat, d.lng); openPadPanel(d); })
-      .arcColor(d => d.color).arcAltitude(0.28).arcStroke(0.45)
-      .arcDashLength(0.45).arcDashGap(0.65).arcDashAnimateTime(REDUCED.matches ? 0 : 3200)
+      .arcColor(d => d.color).arcAltitude(d => d.live ? 0.34 : 0.28).arcStroke(d => d.live ? 1.1 : 0.45)
+      .arcDashLength(0.45).arcDashGap(0.65).arcDashAnimateTime(d => REDUCED.matches ? 0 : (d.live ? 1100 : 3200))
       .arcLabel(d => `<div style="font-family:monospace;font-size:11px;background:rgba(2,5,8,0.88);border:1px solid #1c3048;border-radius:6px;padding:6px 9px;color:#daeaf7">${esc(d.name)}</div>`)
       .labelLat(d => d.lat).labelLng(d => d.lng).labelText(d => d.text)
       .labelColor(d => d.color || '#ffffff').labelSize(1.3).labelDotRadius(0.42).labelAltitude(0.06)
       .onLabelClick(d => { const s = SATS.find(x => x.name === d.text); if (s) openSatPanel(s.id); })
       .ringLat(d => d.lat).ringLng(d => d.lng)
-      .ringColor(() => t => `rgba(255,255,255,${Math.max(0, 1 - t)})`)
-      .ringMaxRadius(4).ringPropagationSpeed(2).ringRepeatPeriod(1300)
+      .ringColor(d => t => hexA(d.color || '#ffffff', Math.max(0, 1 - t)))
+      .ringMaxRadius(d => d.live ? 6 : 4).ringPropagationSpeed(2).ringRepeatPeriod(d => d.live ? 800 : 1300)
       .pathPoints(d => d.pts).pathPointLat(p => p[0]).pathPointLng(p => p[1]).pathPointAlt(() => 0.04)
       .pathColor(d => d.color).pathStroke(d => d.stroke || 1.4).pathTransitionDuration(0)
       .polygonGeoJsonGeometry(d => d.geometry).polygonCapColor(() => 'rgba(0,2,7,0.72)')
@@ -3437,11 +3524,20 @@ function initGlobe() {
       .polygonAltitude(0.008);
     const mat = world.globeMaterial();
     mat.color.set('#0a1626'); mat.emissive.set('#050d1a'); mat.shininess = 4;
-    world.pointOfView({ lat: 24, lng: -55, altitude: 2.1 }, 0);
+    try { world.renderer().setPixelRatio(Math.min(devicePixelRatio || 1, 2)); } catch { /* renderer accessor moved */ }
+    /* boot the camera framed on the next launch's pad — the globe answers
+       "what's next, from where" the moment it appears */
+    const nl = S.upcoming.find(l => Number.isFinite(l.pad?.lat) && Number.isFinite(l.pad?.lon));
+    if (nl) world.pointOfView({ lat: clamp(nl.pad.lat - 8, -60, 60), lng: nl.pad.lon + 4, altitude: 1.9 }, 0);
+    else world.pointOfView({ lat: 24, lng: -55, altitude: 2.1 }, 0);
     const ctl = world.controls();
     ctl.autoRotate = !REDUCED.matches; ctl.autoRotateSpeed = 0.45;
     el.addEventListener('pointerdown', () => { ctl.autoRotate = false; }, { once: true });
     GLOBE.world = world; GLOBE.ready = true;
+    GLOBE.layers = GLOBE.layers || loadGlobeLayers();
+    renderLayerChips();
+    applyGlobeTexture(world);
+    startNextChip();
     const load = $('#globe-loading'); if (load) load.remove();
     refreshGlobeData();
     renderSats();       // paint sats/terminator immediately (analytic sim until TLEs/ISS fix land)
@@ -3482,6 +3578,7 @@ function openPadPanel(site) {
     <div class="gs-pad">${esc(site.pad.name)}</div>
     <div class="gs-loc">${esc(site.pad.location)}</div>
     <div class="gs-coords">${site.lat.toFixed(4)}° · ${site.lng.toFixed(4)}°</div>
+    ${site.next ? `<button class="tl-open-btn" data-launch="${esc(site.next.id)}" style="margin-top:12px">▸ Next from this pad — dossier</button>` : ''}
     <div class="gs-list">${site.launches.map(l => `
       <div class="gs-item" role="button" tabindex="0" data-launch="${esc(l.id)}">
         <div style="min-width:0"><div class="gsn">${esc(l.name)}</div>
@@ -3539,6 +3636,8 @@ function findMyPass() {
   box.innerHTML = passNote('Locating…');
   navigator.geolocation.getCurrentPosition(pos => {
     const { latitude, longitude } = pos.coords;
+    GLOBE.userLoc = { lat: latitude, lon: longitude };   // powers the HUD "ISS over you" chip
+    GLOBE.passCache = null;
     const np = nextPass(id, latitude, longitude);
     if (!np) { box.innerHTML = passNote('Could not compute a pass.'); return; }
     const mins = Math.round(np.inSec / 60);
@@ -3553,9 +3652,10 @@ function passNote(msg) { return `<div style="font-family:var(--fm);font-size:0.6
 function pauseGlobe() {
   if (GLOBE.ready) GLOBE.world.pauseAnimation();
   stopISS();
+  stopNextChip();
 }
 function resumeGlobe() {
-  if (GLOBE.ready) { GLOBE.world.resumeAnimation(); sizeGlobe(); }
+  if (GLOBE.ready) { GLOBE.world.resumeAnimation(); sizeGlobe(); startNextChip(); }
   if (GLOBE.ready || (GLOBE.requested && !GLOBE.failed)) startISS();
 }
 /* ── satellites: ISS live-poll + simulated Tiangong/Hubble, each
@@ -3641,29 +3741,79 @@ function renderSats() {
   GLOBE.satPos = positions;                        // for the craft detail panel
   if (GLOBE.openSat) openSatPanel(GLOBE.openSat, true);   // live-refresh an open panel
 
+  const L = GLOBE.layers || loadGlobeLayers();
   const labels = [], rings = [], paths = [];
   for (const s of SATS) {
     const p = positions[s.id];
+    const tr = s.id === 'iss' ? GLOBE.iss.trail : GLOBE.trails[s.id];
+    tr.push([p.lat, p.lng]);                        // trails keep feeding even while hidden
+    if (tr.length > 40) tr.shift();
+    if (!L.craft) continue;
     labels.push({ lat: p.lat, lng: p.lng, text: s.name, color: s.color });
     rings.push({ lat: p.lat, lng: p.lng });
-    const tr = s.id === 'iss' ? GLOBE.iss.trail : GLOBE.trails[s.id];
-    tr.push([p.lat, p.lng]);
-    if (tr.length > 40) tr.shift();
-    splitTrack(tr).forEach(seg => paths.push({ pts: seg, color: hexA(s.color, 0.6), stroke: 1.6 }));
-    if (s.id !== 'iss') orbitTrack(s).forEach(seg => paths.push({ pts: seg, color: hexA(s.color, 0.16), stroke: 0.8 }));
+    if (L.trails) {
+      splitTrack(tr).forEach(seg => paths.push({ pts: seg, color: hexA(s.color, 0.6), stroke: 1.6 }));
+      if (s.id !== 'iss') orbitTrack(s).forEach(seg => paths.push({ pts: seg, color: hexA(s.color, 0.16), stroke: 0.8 }));
+    }
   }
-  GLOBE.world.labelsData(labels).ringsData(rings).pathsData(paths).polygonsData(nightPolygon());
+  /* launch-day: pulse the hero pad and keep re-feeding arcs so the
+     ascent arc grows downrange after T-0 */
+  const hero = S.heroLaunch;
+  const live = !!(hero && inLiveWindow(hero) && Number.isFinite(hero.pad?.lat) && Number.isFinite(hero.pad?.lon));
+  if (live) rings.push({ lat: hero.pad.lat, lng: hero.pad.lon, color: '#34d399', live: true });
+  GLOBE.world.labelsData(labels).ringsData(rings).pathsData(paths)
+    .polygonsData(L.terminator ? nightPolygon() : []);
+  if (live || live !== GLOBE.liveArc) { GLOBE.liveArc = live; GLOBE.world.arcsData(globeArcs()); }
 
-  // HUD
-  const hud = $('#sat-hud'); if (hud.hidden) hud.hidden = false;
-  $('#sat-rows').innerHTML = SATS.map(s => {
+  // HUD (hidden with the craft layer)
+  const hud = $('#sat-hud');
+  hud.hidden = !L.craft;
+  if (L.craft) $('#sat-rows').innerHTML = SATS.map(s => {
     const p = positions[s.id], src = p.src || 'SIM';
     return `<button class="sat-row" data-sat="${s.id}" aria-label="${esc(s.name)} details">
       <span class="sat-name"><span class="sat-dot" style="background:${s.color}"></span>${esc(s.name)}</span>
       <span class="sat-tag ${src === 'SIM' ? 'sim' : ''}">${src}</span>
       <span class="sat-coord">${p.lat.toFixed(1)}°, ${p.lng.toFixed(1)}° · ${Math.round(p.alt)} KM · ${Math.round(p.vel).toLocaleString('en-US')} KM/H</span>
     </button>`;
-  }).join('');
+  }).join('') + issPassHTML();
+}
+/* "ISS over you in ~N min" — appears once findMyPass has a location fix;
+   the 6 h ground-track scan is cached for a minute */
+function issPassHTML() {
+  if (!GLOBE.userLoc) return '';
+  if (!GLOBE.passCache || Date.now() - GLOBE.passCache.at > 60e3) {
+    GLOBE.passCache = { at: Date.now(), np: nextPass('iss', GLOBE.userLoc.lat, GLOBE.userLoc.lon) };
+  }
+  const np = GLOBE.passCache.np;
+  if (!np) return '';
+  return `<div class="hud-pass">◎ ISS over you in ~${Math.max(1, Math.round(np.inSec / 60))} min</div>`;
+}
+/* NEXT-launch chip: 1 s countdown, click opens the dossier (data-launch) */
+function fmtTminus(ms) {
+  if (ms <= 0) return 'T-0';
+  const s = Math.floor(ms / 1000), d = Math.floor(s / 86400), p = n => String(n).padStart(2, '0');
+  const h = Math.floor((s % 86400) / 3600), m = Math.floor((s % 3600) / 60), ss = s % 60;
+  return d > 0 ? `T-${d}d ${p(h)}:${p(m)}:${p(ss)}` : `T-${p(h)}:${p(m)}:${p(ss)}`;
+}
+function renderNextChip() {
+  const chip = $('#globe-next'); if (!chip) return;
+  const nl = S.upcoming.find(l => Number.isFinite(l.net));
+  if (!nl) { chip.hidden = true; return; }
+  chip.hidden = false;
+  chip.dataset.launch = nl.id;
+  const live = inLiveWindow(nl);
+  chip.classList.toggle('live', live);
+  chip.innerHTML = live
+    ? `<span class="gn-live">● LIVE</span> ${esc(nl.name)}`
+    : `NEXT · ${esc(nl.name)} · <b>${esc(fmtTminus(nl.net - Date.now()))}</b>`;
+}
+function startNextChip() {
+  if (GLOBE.chipTimer) return;
+  renderNextChip();
+  GLOBE.chipTimer = setInterval(renderNextChip, 1000);
+}
+function stopNextChip() {
+  if (GLOBE.chipTimer) { clearInterval(GLOBE.chipTimer); GLOBE.chipTimer = null; }
 }
 /* hex (#rrggbb) → rgba string with alpha */
 function hexA(hex, a) {
@@ -5183,10 +5333,11 @@ document.addEventListener('click', e => {
   if (e.target === $('#modal')) { closeModal(); return; }
   if (e.target === $('#palette')) { closePalette(); return; }
   if (e.target === $('#shortcuts') || e.target === $('#alerts-dialog')) { closeSheet(); return; }
-  const t = e.target.closest('[data-tab],[data-open-modal],[data-launch],[data-prov-chip],[data-st-chip],[data-clear-filters],[data-range],[data-expand],[data-co-provider],[data-mstep],[data-pal-idx],[data-feed-play],[data-feed-pip],[data-feed-dock],[data-live-watch],[data-star],[data-watch-filter],[data-ics],[data-clock],[data-sat],#sat-locate,#density-btn,#search-btn,#theme-btn,#tz-btn,#alerts-btn,#help-btn,#sc-close,#al-close,#clock-close,#clock-fs,#clock-audio,#m-close,#gs-close,#pip-close,#pip-expand');
+  const t = e.target.closest('[data-tab],[data-open-modal],[data-launch],[data-prov-chip],[data-st-chip],[data-clear-filters],[data-range],[data-expand],[data-co-provider],[data-mstep],[data-pal-idx],[data-feed-play],[data-feed-pip],[data-feed-dock],[data-live-watch],[data-star],[data-watch-filter],[data-ics],[data-clock],[data-sat],[data-glayer],#sat-locate,#density-btn,#search-btn,#theme-btn,#tz-btn,#alerts-btn,#help-btn,#sc-close,#al-close,#clock-close,#clock-fs,#clock-audio,#m-close,#gs-close,#pip-close,#pip-expand');
   if (!t) return;
   if (t.dataset.liveWatch) { watchLiveHero(t.dataset.liveWatch); return; }
   if (t.dataset.sat !== undefined) { openSatPanel(t.dataset.sat); return; }
+  if (t.dataset.glayer) { toggleGlobeLayer(t.dataset.glayer); return; }
   if (t.id === 'sat-locate') { findMyPass(); return; }
   if (t.dataset.clock !== undefined) { openClock(t.dataset.clock, t); return; }
   if (t.id === 'clock-close') { closeClock(); return; }
