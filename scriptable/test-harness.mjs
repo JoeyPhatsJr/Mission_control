@@ -326,5 +326,85 @@ test('buildMessage renders title + subtitle', () => {
   assert.deepEqual(texts(w), ['SIGNAL LOST', 'open app to sync']);
 });
 
+test('buildHomeSmall: header + US tag + name + timer + vehicle', () => {
+  const { exports: W, ctx } = loadWidget();
+  const w = new ctx.ListWidget();
+  W.buildHomeSmall(w, mkLaunch(), { now: NOW, cachedAt: null, queue: [] });
+  const ts = texts(w);
+  assert.ok(ts.includes('NEXT LAUNCH'));
+  assert.ok(ts.includes('US'));
+  assert.ok(ts.includes('Starlink Group 12-31'));
+  assert.ok(ts.includes('Falcon 9 Block 5'));
+  assert.equal(flatten(w).filter(e => e.type === 'date' && e.style === 'timer').length, 1);
+});
+
+test('buildHomeMedium: accent bar image + go percentage + meta row', () => {
+  const { exports: W, ctx } = loadWidget();
+  const w = new ctx.ListWidget();
+  W.buildHomeMedium(w, mkLaunch(), { now: NOW, cachedAt: null, queue: [] });
+  assert.equal(flatten(w).filter(e => e.type === 'image').length, 1);   // provider bar
+  const ts = texts(w);
+  assert.ok(ts.includes('95% GO'));
+  assert.ok(ts.some(t => t.includes('SLC-40') && t.includes('Falcon 9 Block 5')));
+});
+
+test('buildHomeLarge: medium content + UP NEXT queue rows', () => {
+  const { exports: W, ctx } = loadWidget();
+  const w = new ctx.ListWidget();
+  const queue = [
+    mkLaunch({ id: 'll2-q1', name: 'USSF-87', provider: 'United Launch Alliance', net: NOW + 2 * 86400000, statusAbbrev: 'TBD' }),
+    mkLaunch({ id: 'll2-q2', name: 'Salt Of The Earth', provider: 'Rocket Lab', net: NOW + 4 * 86400000 }),
+  ];
+  W.buildHomeLarge(w, mkLaunch(), { now: NOW, cachedAt: null, queue });
+  const ts = texts(w);
+  assert.ok(ts.includes('UP NEXT'));
+  assert.ok(ts.includes('USSF-87'));
+  assert.ok(ts.includes('Salt Of The Earth'));
+  assert.ok(ts.some(t => t.startsWith('~')));           // TBD queue row gets ~ date
+  const wEmpty = new ctx.ListWidget();
+  W.buildHomeLarge(wEmpty, mkLaunch(), { now: NOW, cachedAt: null, queue: [] });
+  assert.ok(texts(wEmpty).some(t => t.toLowerCase().includes('no further')));
+});
+
+test('makeWidget: dispatch, deep-link url, refresh hints', async () => {
+  const { exports: W } = loadWidget();
+  setNextResponse(FIXTURE);
+  const w = await W.makeWidget('medium', NOW);
+  assert.equal(w.url, 'https://joeyphatsjr.github.io/Mission_control/#launch=ll2-f3c47a1e-1111-4a5b-9c3d-aaaaaaaaaaaa');
+  assert.ok(texts(w).includes('Starlink Group 12-31'));
+  assert.equal(w.refreshAfterDate.getTime(), NOW + 15 * 60000);   // T−14.5h → +15 min
+  vfs.clear();
+  const soon = JSON.parse(JSON.stringify(FIXTURE));
+  soon.results[0].net = new Date(NOW + 30 * 60000).toISOString(); // inside T−1h
+  setNextResponse(soon);
+  const w2 = await W.makeWidget('accessoryRectangular', NOW);
+  assert.equal(w2.refreshAfterDate.getTime(), NOW + 5 * 60000);   // tightened
+  assert.equal(flatten(w2).filter(e => e.type === 'date' && e.style === 'timer').length, 1);
+});
+
+test('makeWidget: SIGNAL LOST and empty-filter states still link to the app', async () => {
+  const { exports: W } = loadWidget();
+  setNextResponse(new Error('offline'));
+  const w = await W.makeWidget('small', NOW);
+  assert.ok(texts(w).includes('SIGNAL LOST'));
+  assert.equal(w.url, W.CONFIG.APP_URL);
+  vfs.clear();
+  const foreignOnly = { results: [FIXTURE.results[3], FIXTURE.results[4]] };
+  setNextResponse(foreignOnly);
+  const w2 = await W.makeWidget('medium', NOW);
+  assert.ok(texts(w2).includes('NO USA LAUNCHES'));
+});
+
+test('makeWidget: every family renders the current mission', async () => {
+  const { exports: W } = loadWidget();
+  for (const fam of ['accessoryRectangular', 'accessoryCircular', 'accessoryInline', 'small', 'medium', 'large']) {
+    vfs.clear(); setNextResponse(FIXTURE);
+    const w = await W.makeWidget(fam, NOW);
+    const all = texts(w).join(' ');
+    const drawn = flatten(w).filter(e => e.type === 'image');
+    assert.ok(all.includes('Starlink') || drawn.length > 0, fam + ' rendered nothing');
+  }
+});
+
 export { FIXTURE };
 await run();

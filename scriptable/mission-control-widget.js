@@ -252,6 +252,128 @@ function buildLockInline(w, l, meta) {
   t.lineLimit = 1;
 }
 
+/* ── Home Screen builders ────────────────────────────────────────── */
+function headerRow(parent, withGo, l) {
+  const h = parent.addStack();
+  h.centerAlignContent();
+  const t = h.addText('NEXT LAUNCH');
+  t.font = Font.semiboldSystemFont(10); t.textColor = UI.dim;
+  if (CONFIG.COUNTRY) {
+    h.addSpacer(6);
+    const tag = h.addText(CONFIG.COUNTRY === 'USA' ? 'US' : CONFIG.COUNTRY);
+    tag.font = Font.semiboldSystemFont(9); tag.textColor = UI.accent;
+  }
+  h.addSpacer();
+  if (withGo && l) {
+    const dot = h.addText('●');
+    dot.font = Font.systemFont(10); dot.textColor = goColor(l.probability);
+    if (l.probability != null) {
+      h.addSpacer(3);
+      const p = h.addText(l.probability + '% GO');
+      p.font = Font.semiboldSystemFont(10); p.textColor = UI.dim;
+    }
+  }
+  return h;
+}
+function buildHomeSmall(w, l, meta) {
+  w.setPadding(12, 12, 12, 12);
+  headerRow(w, false, l);
+  w.addSpacer(4);
+  const name = w.addText(l.name);
+  name.font = Font.boldSystemFont(15); name.textColor = UI.text; name.lineLimit = 2; name.minimumScaleFactor = 0.7;
+  w.addSpacer();
+  countdownRow(w, l, 22, meta.now);
+  const v = w.addText(l.vehicle);
+  v.font = Font.systemFont(11); v.textColor = UI.dim; v.lineLimit = 1;
+  staleStamp(w, meta.cachedAt);
+}
+function mediumContent(col, l, meta) {
+  headerRow(col, true, l);
+  col.addSpacer(4);
+  const name = col.addText(l.name);
+  name.font = Font.boldSystemFont(17); name.textColor = UI.text; name.lineLimit = 1; name.minimumScaleFactor = 0.6;
+  col.addSpacer(2);
+  countdownRow(col, l, 26, meta.now);
+  col.addSpacer(2);
+  const m = col.addText(l.vehicle + ' · ' + padShort(l.padName) + ' · ' + fmtDate(l.net));
+  m.font = Font.systemFont(11); m.textColor = UI.dim; m.lineLimit = 1; m.minimumScaleFactor = 0.7;
+  staleStamp(col, meta.cachedAt);
+}
+function buildHomeMedium(w, l, meta) {
+  w.setPadding(14, 14, 14, 14);
+  const row = w.addStack();
+  row.addImage(barImage(provColor(l.provider), 6, 110));
+  row.addSpacer(12);
+  const col = row.addStack();
+  col.layoutVertically();
+  mediumContent(col, l, meta);
+}
+function buildHomeLarge(w, l, meta) {
+  w.setPadding(16, 16, 16, 16);
+  const row = w.addStack();
+  row.addImage(barImage(provColor(l.provider), 6, 130));
+  row.addSpacer(12);
+  const col = row.addStack();
+  col.layoutVertically();
+  mediumContent(col, l, meta);
+  w.addSpacer(12);
+  const uh = w.addText('UP NEXT');
+  uh.font = Font.semiboldSystemFont(10); uh.textColor = UI.dim;
+  w.addSpacer(4);
+  for (const q of meta.queue) {
+    const r = w.addStack();
+    r.centerAlignContent();
+    const dot = r.addText('●');
+    dot.font = Font.systemFont(9); dot.textColor = new Color(provColor(q.provider));
+    r.addSpacer(6);
+    const n = r.addText(q.name);
+    n.font = Font.mediumSystemFont(12); n.textColor = UI.text; n.lineLimit = 1;
+    r.addSpacer();
+    const d = r.addText((isTBD(q) ? '~ ' : '') + fmtDate(q.net));
+    d.font = Font.systemFont(11); d.textColor = UI.dim;
+    w.addSpacer(3);
+  }
+  if (!meta.queue.length) {
+    const none = w.addText('No further ' + (CONFIG.COUNTRY || '') + ' launches tracked');
+    none.font = Font.systemFont(11); none.textColor = UI.dim;
+  }
+  w.addSpacer();
+}
+
+/* ── Assembly ────────────────────────────────────────────────────── */
+async function makeWidget(family, now) {
+  const w = new ListWidget();
+  const isLock = String(family || '').startsWith('accessory');
+  if (!isLock) w.backgroundColor = UI.bg;
+  w.url = CONFIG.APP_URL;
+  const { launches, cachedAt } = await loadLaunches(now);
+  if (!launches) {
+    buildMessage(w, 'SIGNAL LOST', 'open app to sync');
+    w.refreshAfterDate = new Date(now + 15 * 60000);
+    return w;
+  }
+  const { current, queue } = pickLaunch(launches, now);
+  if (!current) {
+    buildMessage(w, 'NO ' + (CONFIG.COUNTRY || '') + ' LAUNCHES', 'on the board');
+    w.refreshAfterDate = new Date(now + 15 * 60000);
+    return w;
+  }
+  w.url = deepLink(current);
+  const meta = { now, cachedAt, queue };
+  switch (family) {
+    case 'accessoryRectangular': buildLockRect(w, current, meta); break;
+    case 'accessoryCircular': buildLockCircle(w, current, meta); break;
+    case 'accessoryInline': buildLockInline(w, current, meta); break;
+    case 'small': buildHomeSmall(w, current, meta); break;
+    case 'large': buildHomeLarge(w, current, meta); break;
+    default: buildHomeMedium(w, current, meta);
+  }
+  const msTo = current.net - now;
+  const mins = msTo > 0 && msTo < 3600000 ? 5 : 15;   // tighten inside T−1h
+  w.refreshAfterDate = new Date(now + mins * 60000);
+  return w;
+}
+
 if (typeof module !== 'undefined' && module.exports !== undefined) {
   module.exports = {
     CONFIG, provColor, normalize, padCountry, padShort,
@@ -259,5 +381,6 @@ if (typeof module !== 'undefined' && module.exports !== undefined) {
     loadLaunches, readCache, writeCache, cachePath,
     UI, goColor, countdownRow, staleStamp, buildMessage, ringImage, barImage,
     buildLockRect, buildLockCircle, buildLockInline,
+    headerRow, mediumContent, buildHomeSmall, buildHomeMedium, buildHomeLarge, makeWidget,
   };
 }
