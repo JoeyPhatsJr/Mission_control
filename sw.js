@@ -49,6 +49,44 @@ self.addEventListener('fetch', (e) => {
   e.respondWith(caches.match(req).then((r) => r || fetch(req)));
 });
 
+// Web Push from the companion worker (push-worker/). The page mirrors the
+// ★ watchlist into IndexedDB (SWs can't read localStorage); pushes for
+// unwatched launches are dropped here as defense-in-depth — the worker
+// already server-filters using the watch list sent with the subscription.
+function idbGetWatch() {
+  return new Promise((resolve) => {
+    try {
+      const open = indexedDB.open('mc2', 1);
+      open.onupgradeneeded = () => open.result.createObjectStore('kv');
+      open.onsuccess = () => {
+        try {
+          const get = open.result.transaction('kv').objectStore('kv').get('watch');
+          get.onsuccess = () => resolve(Array.isArray(get.result) ? get.result : null);
+          get.onerror = () => resolve(null);
+        } catch { resolve(null); }
+      };
+      open.onerror = () => resolve(null);
+    } catch { resolve(null); }
+  });
+}
+const MILESTONE_LABEL = { 0: '🚀 Liftoff', 10: 'T-10 min', 60: 'T-1 hour', 1440: 'T-24 hours' };
+self.addEventListener('push', (e) => {
+  let d = {};
+  try { d = e.data ? e.data.json() : {}; } catch { /* opaque payload */ }
+  e.waitUntil((async () => {
+    const watch = await idbGetWatch();
+    if (Array.isArray(watch) && d.launchId && !watch.includes(d.launchId)) return;
+    const label = MILESTONE_LABEL[d.milestone] || 'Launch alert';
+    await self.registration.showNotification(`${label} — ${d.name || 'Launch'}`, {
+      body: d.provider ? `${d.provider} · launch alert` : 'Mission Control launch alert',
+      icon: './icons/icon-192.png',
+      badge: './icons/icon-192.png',
+      tag: `mc-push-${d.launchId || 'x'}-${d.milestone ?? ''}`,
+      data: { url: './#launch=' + encodeURIComponent(d.launchId || '') },
+    });
+  })());
+});
+
 // focus an existing window (or open one) when a launch notification is tapped
 self.addEventListener('notificationclick', (e) => {
   e.notification.close();

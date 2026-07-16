@@ -1869,6 +1869,10 @@ main {
       <p class="sheet-note">In-app alerts fire for launches on your ★ watchlist while this page is open. Choose which milestones notify you.</p>
       <label class="al-toggle"><input type="checkbox" id="al-enabled"> <span>Enable launch alerts</span></label>
       <div class="al-mins" id="al-mins" role="group" aria-label="Alert milestones"></div>
+      <div id="al-push-wrap" hidden style="margin-top:14px;border-top:1px solid var(--border);padding-top:12px">
+        <label class="al-toggle"><input type="checkbox" id="al-push"> <span>Push to this device — works with the app closed</span></label>
+        <p class="sheet-note" id="al-push-note" style="margin:6px 0 0"></p>
+      </div>
     </div>
   </div>
 </div>
@@ -2542,6 +2546,8 @@ function loadWatch() {
 }
 function saveWatch() {
   try { localStorage.setItem(WATCH_KEY, JSON.stringify([...S.watch])); } catch { /* private mode */ }
+  syncWatchIDB();      // keep the service worker's push filter current
+  pushSyncSoon();      // and the relay's server-side filter (no-op if push off)
 }
 function starBtn(l, extraCls) {
   const on = S.watch.has(l.id);
@@ -4988,12 +4994,90 @@ function loadAlertPrefs() {
 function saveAlertPrefs() {
   try { localStorage.setItem('mc2-alerts', JSON.stringify({ enabled: S.alerts.enabled, mins: [...S.alerts.mins] })); } catch { /* blocked */ }
 }
+/* ── §16d PUSH — closed-app alerts via the companion Cloudflare Worker
+   (push-worker/). Both values stay '' until the worker is deployed
+   (push-worker/README.md); empty = the whole feature stays hidden and the
+   app behaves exactly as before. iOS only grants push to Home-Screen
+   installs and only from a user gesture, hence the explicit toggle. ── */
+const PUSH = {
+  worker: '',        // e.g. 'https://mc-push.<account>.workers.dev'
+  vapidKey: '',      // VAPID public key from push-worker/gen-keys.mjs
+};
+const pushSupported = () =>
+  !!(PUSH.worker && PUSH.vapidKey && CAN_EMBED && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window);
+async function pushSubscription() {
+  try { const reg = await navigator.serviceWorker.ready; return await reg.pushManager.getSubscription(); }
+  catch { return null; }
+}
+async function renderPushRow() {
+  const wrap = $('#al-push-wrap'); if (!wrap) return;
+  wrap.hidden = !pushSupported();
+  if (wrap.hidden) return;
+  const sub = await pushSubscription();
+  const box = $('#al-push'); if (box) box.checked = !!sub;
+  const note = $('#al-push-note');
+  if (!note || note.dataset.err) return;
+  const iosBrowser = /iphone|ipad|ipod/i.test(navigator.userAgent) && !matchMedia('(display-mode: standalone)').matches;
+  note.textContent = sub ? 'This device gets ★ watchlist alerts even with the app closed.'
+    : iosBrowser ? 'On iPhone: add Mission Control to the Home Screen first, then enable here.'
+    : 'Alerts follow your ★ watchlist; delivered by the Mission Control push relay.';
+}
+function b64uToU8(s) {
+  s = s.replace(/-/g, '+').replace(/_/g, '/');
+  return Uint8Array.from(atob(s + '='.repeat((4 - s.length % 4) % 4)), c => c.charCodeAt(0));
+}
+async function enablePush() {
+  const note = $('#al-push-note');
+  try {
+    const perm = await Notification.requestPermission();
+    if (perm !== 'granted') throw new Error('notification permission denied');
+    const reg = await navigator.serviceWorker.ready;
+    const sub = await reg.pushManager.subscribe({ userVisibleOnly: true, applicationServerKey: b64uToU8(PUSH.vapidKey) });
+    await pushSync(sub);
+    toast('PUSH ENABLED', 'This device now gets watchlist launch alerts.', '✓');
+  } catch (err) {
+    if (note) { note.dataset.err = '1'; note.textContent = 'Could not enable push — ' + ((err && err.message) || 'unknown error'); setTimeout(() => { delete note.dataset.err; renderPushRow(); }, 6000); }
+  }
+  renderPushRow();
+}
+async function disablePush() {
+  try {
+    const sub = await pushSubscription();
+    if (sub) {
+      fetch(PUSH.worker + '/unsubscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ endpoint: sub.endpoint }) }).catch(() => { /* relay cleans up dead subs itself */ });
+      await sub.unsubscribe();
+    }
+  } catch { /* best-effort */ }
+  renderPushRow();
+}
+/* POST the subscription + watchlist (the server-side filter — iOS revokes
+   subs that receive pushes without showing notifications, so the relay must
+   not send launches this device doesn't follow) */
+async function pushSync(subMaybe) {
+  if (!pushSupported()) return;
+  const sub = subMaybe || await pushSubscription();
+  if (!sub) return;
+  try {
+    await fetch(PUSH.worker + '/subscribe', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ subscription: sub.toJSON(), watch: [...S.watch] }) });
+  } catch { /* relay unreachable — in-app alerts still work */ }
+}
+const pushSyncSoon = debounce(() => pushSync(), 1500);
+/* mirror the watchlist into IndexedDB — the service worker's push handler
+   can't read localStorage */
+function syncWatchIDB() {
+  try {
+    const open = indexedDB.open('mc2', 1);
+    open.onupgradeneeded = () => open.result.createObjectStore('kv');
+    open.onsuccess = () => { try { open.result.transaction('kv', 'readwrite').objectStore('kv').put([...S.watch], 'watch'); } catch { /* ignore */ } };
+  } catch { /* unavailable (some file:// / private modes) */ }
+}
 function renderAlertDialog() {
   $('#al-enabled').checked = S.alerts.enabled;
   const wrap = $('#al-mins');
   wrap.classList.toggle('disabled', !S.alerts.enabled);
   wrap.innerHTML = REMINDERS.map(r =>
     `<label class="al-min"><input type="checkbox" data-al-min="${r.min}" ${S.alerts.mins.has(r.min) ? 'checked' : ''}> <span>${esc(r.label)}${r.min === 0 ? ' · liftoff' : ' before launch'}</span></label>`).join('');
+  renderPushRow();
 }
 
 /* generic centered dialog (shortcuts, alerts) with focus trap + Esc */
@@ -5459,6 +5543,7 @@ $('.tabs').addEventListener('keydown', e => {
 $('#sort-select').addEventListener('change', e => { S.sort = e.target.value; renderMissions(); });
 $('#alerts-dialog').addEventListener('change', e => {
   const el = e.target;
+  if (el.id === 'al-push') { el.checked ? enablePush() : disablePush(); return; }
   if (el.id === 'al-enabled') {
     S.alerts.enabled = el.checked;
     $('#al-mins').classList.toggle('disabled', !el.checked);
@@ -5512,6 +5597,7 @@ function boot() {
   initTheme();
   initPWA();
   loadWatch();
+  syncWatchIDB();                                  // SW push filter sees the persisted watchlist
   loadTz();
   loadAlertPrefs();
   try { CLOCK.audio = localStorage.getItem('mc2-clock-audio') === '1'; } catch { /* blocked */ }
