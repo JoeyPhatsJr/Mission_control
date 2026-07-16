@@ -142,5 +142,56 @@ test('provColor matches the app palette and hash-falls-back', () => {
   assert.equal(W.provColor('Totally New Rocket Co'), fb); // stable hash
 });
 
+test('normalize maps LL2 fields and drops null-net entries', () => {
+  const { exports: W } = loadWidget();
+  const l = W.normalize(FIXTURE.results[0]);
+  assert.equal(l.id, 'll2-f3c47a1e-1111-4a5b-9c3d-aaaaaaaaaaaa');
+  assert.equal(l.name, 'Starlink Group 12-31');           // mission.name preferred
+  assert.equal(l.provider, 'SpaceX');
+  assert.equal(l.vehicle, 'Falcon 9 Block 5');            // full_name preferred
+  assert.equal(l.padName, 'Space Launch Complex 40');
+  assert.equal(l.net, Date.parse('2026-07-16T02:30:00Z'));
+  assert.equal(l.probability, 95);
+  assert.equal(W.normalize(FIXTURE.results[5]), null);    // net: null → dropped
+  assert.equal(W.normalize(FIXTURE.results[1]).probability, null); // -1 → null
+  // pipe-split fallback when mission.name absent
+  const noMission = { ...FIXTURE.results[0], mission: null };
+  assert.equal(W.normalize(noMission).name, 'Starlink Group 12-31');
+});
+
+test('padCountry handles all three LL2 field shapes', () => {
+  const { exports: W } = loadWidget();
+  assert.equal(W.padCountry(FIXTURE.results[0]), 'USA');  // 2.3.0 pad.country.alpha_3_code
+  assert.equal(W.padCountry(FIXTURE.results[1]), 'USA');  // 2.2.0 pad.location.country_code
+  assert.equal(W.padCountry(FIXTURE.results[2]), 'USA');  // location-name suffix fallback
+  assert.equal(W.padCountry(FIXTURE.results[3]), 'CHN');
+  assert.equal(W.padCountry({}), '');
+});
+
+test('padShort abbreviates pad boilerplate', () => {
+  const { exports: W } = loadWidget();
+  assert.equal(W.padShort('Space Launch Complex 40'), 'SLC-40');
+  assert.equal(W.padShort('Launch Complex 39A'), 'LC-39A');
+  assert.equal(W.padShort('Rocket Lab Launch Complex 2'), 'Rocket Lab LC-2');
+  assert.ok(W.padShort('An Extremely Long Pad Name That Never Ends').length <= 18);
+  assert.equal(W.padShort(null), '');
+});
+
+test('formatters: fmtTminus / fmtTminusFine / fmtDate / isTBD / deepLink', () => {
+  const { exports: W } = loadWidget();
+  const H = 3600000, D = 86400000, M = 60000;
+  assert.equal(W.fmtTminus(4 * H + 12 * M), 'T−4h');
+  assert.equal(W.fmtTminus(3 * D), 'T−3d');
+  assert.equal(W.fmtTminus(42 * M), 'T−42m');
+  assert.equal(W.fmtTminus(-5 * M), 'T+5m');
+  assert.equal(W.fmtTminusFine(4 * H + 12 * M), 'T−4h 12m');
+  assert.equal(W.fmtTminusFine(2 * D + 5 * H), 'T−2d 5h');
+  assert.match(W.fmtDate(NOW), /\d/);
+  assert.equal(W.isTBD({ statusAbbrev: 'TBD' }), true);
+  assert.equal(W.isTBD({ statusAbbrev: 'Go' }), false);
+  assert.equal(W.deepLink({ id: 'll2-abc' }), 'https://joeyphatsjr.github.io/Mission_control/#launch=ll2-abc');
+  assert.equal(W.deepLink(null), 'https://joeyphatsjr.github.io/Mission_control/');
+});
+
 export { FIXTURE };
 await run();

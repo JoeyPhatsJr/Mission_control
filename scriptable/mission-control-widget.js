@@ -36,6 +36,70 @@ function provColor(name) {
   return PROV_FALLBACK[h % PROV_FALLBACK.length];
 }
 
+/* ── LL2 normalization (mirrors the app's normalizeLL2 subset) ───── */
+function padCountry(raw) {
+  const p = raw && raw.pad;
+  const code = p?.country?.alpha_3_code || p?.location?.country?.alpha_3_code || p?.location?.country_code;
+  if (code) return String(code);
+  const tail = String(p?.location?.name || '').split(',').pop().trim();
+  if (/united states|usa/i.test(tail)) return 'USA';
+  return tail.length === 3 ? tail.toUpperCase() : '';
+}
+function normalize(raw) {
+  const net = raw?.net ? Date.parse(raw.net) : NaN;
+  if (!Number.isFinite(net)) return null;
+  const cfg = raw.rocket?.configuration || {};
+  const rawName = String(raw.name || 'Unnamed Mission');
+  const name = String(raw.mission?.name || '') ||
+    (rawName.includes('|') ? rawName.split('|').pop().trim() : rawName);
+  const prob = Number.isFinite(raw.probability) && raw.probability >= 0 ? raw.probability : null;
+  return {
+    id: 'll2-' + String(raw.id),
+    name,
+    provider: String(raw.launch_service_provider?.name || 'Unknown'),
+    vehicle: String(cfg.full_name || cfg.name || 'TBD'),
+    padName: String(raw.pad?.name || 'TBD'),
+    country: padCountry(raw),
+    net,
+    windowEnd: raw.window_end ? Date.parse(raw.window_end) : NaN,
+    statusAbbrev: String(raw.status?.abbrev || ''),
+    probability: prob,
+  };
+}
+
+/* ── Small formatters ────────────────────────────────────────────── */
+function padShort(name) {
+  let s = String(name || '').split(',')[0]
+    .replace(/Space Launch Complex[\s-]*/i, 'SLC-')
+    .replace(/Launch Complex[\s-]*/i, 'LC-')
+    .replace(/Launch Area[\s-]*/i, 'LA-')
+    .replace(/Landing Zone[\s-]*/i, 'LZ-')
+    .trim();
+  return s.length > 18 ? s.slice(0, 17).trim() + '…' : s;
+}
+function isTBD(l) { return /TBD|TBC/i.test(l?.statusAbbrev || ''); }
+function fmtDate(ms) {
+  return new Date(ms).toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+}
+function fmtTminus(msTo) {
+  const sign = msTo >= 0 ? '−' : '+';
+  const a = Math.abs(msTo);
+  const d = Math.floor(a / 86400000), h = Math.floor(a / 3600000), m = Math.floor(a / 60000);
+  return 'T' + sign + (d >= 1 ? d + 'd' : h >= 1 ? h + 'h' : m + 'm');
+}
+function fmtTminusFine(msTo) {
+  const sign = msTo >= 0 ? '−' : '+';
+  const a = Math.abs(msTo);
+  const d = Math.floor(a / 86400000);
+  const h = Math.floor((a % 86400000) / 3600000);
+  const m = Math.floor((a % 3600000) / 60000);
+  return 'T' + sign + (d >= 1 ? d + 'd ' + h + 'h' : h >= 1 ? h + 'h ' + m + 'm' : m + 'm');
+}
+function deepLink(l) { return l ? CONFIG.APP_URL + '#launch=' + l.id : CONFIG.APP_URL; }
+
 if (typeof module !== 'undefined' && module.exports !== undefined) {
-  module.exports = { CONFIG, provColor };
+  module.exports = {
+    CONFIG, provColor, normalize, padCountry, padShort,
+    isTBD, fmtDate, fmtTminus, fmtTminusFine, deepLink,
+  };
 }
