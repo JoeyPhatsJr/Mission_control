@@ -1961,6 +1961,7 @@ const STATUS = {
   failure:  { label: 'Failure',       short: 'FAILURE',  cls: 'st-failure',  icon: '✕' },
   partial:  { label: 'Partial',       short: 'PARTIAL',  cls: 'st-partial',  icon: '◑' },
   inflight: { label: 'In Flight',     short: 'IN FLIGHT',cls: 'st-inflight', icon: '➤' },
+  flown:    { label: 'Flew · Result Pending', short: 'FLOWN', cls: 'st-inflight', icon: '➤' },
 };
 const stMeta = code => STATUS[code] || STATUS.tbd;
 function pillHTML(code) {
@@ -2456,9 +2457,8 @@ function setData(upcoming, past, source, provider) {
   }
   S.upcoming = [...upcoming].sort((a, b) => a.net - b.net);
   S.past = [...past].sort((a, b) => b.net - a.net);
-  S.all = [...S.upcoming, ...S.past];
-  S.ordered = [...S.all].sort((a, b) => a.net - b.net);
-  S.byId = new Map(S.all.map(l => [l.id, l]));
+  partitionFlown();                                // retire launches already flown (see §7d)
+  reindexData();
   S.source = source;
   if (provider) S.feedProvider = provider;
   updateSourceBadge();
@@ -2480,6 +2480,42 @@ function setData(upcoming, past, source, provider) {
   if (side && side.classList.contains('open')) closePadPanel();
   feedSig = feedSignature(S.upcoming, S.past);
   if (feedEvents.length) applyFeedEvents(feedEvents);   // after renderAll — hero is fresh
+}
+/* ════════════════════════════════════════════════════════════════
+   §7d FLOWN RETIREMENT (MC-3) — once a launch has flown, it leaves the
+   Missions upcoming view and joins the recent grid. "Flown" = LL2 status
+   went terminal (success/failure/partial) OR the clock passed T+20m after
+   the window closes (the offline/slow-API fallback — matches "payload
+   deployed / stream ended" for the common case). Purely client-side, so it
+   works on seed data too. Runs on each feed refresh + a 30 s wall-clock tick.
+   ════════════════════════════════════════════════════════════════ */
+const FLOWN_GRACE = 20 * MIN;
+const TERMINAL = s => s === 'success' || s === 'failure' || s === 'partial';
+function hasFlown(l) {
+  if (l.isPast || !Number.isFinite(l.net)) return false;
+  if (TERMINAL(l.status)) return true;
+  const end = Number.isFinite(l.windowEnd) ? l.windowEnd : l.net;   // window close, not window open
+  return Date.now() > end + FLOWN_GRACE;
+}
+function partitionFlown() {                         // move flown launches from upcoming → past; returns true if any moved
+  const flown = S.upcoming.filter(hasFlown);
+  if (!flown.length) return false;
+  const ids = new Set(flown.map(l => l.id));
+  flown.forEach(l => { if (!TERMINAL(l.status)) l.status = 'flown'; l.isPast = true; });   // 'flown' = lifted off, outcome not yet reported
+  S.upcoming = S.upcoming.filter(l => !ids.has(l.id));
+  S.past = [...S.past, ...flown].sort((a, b) => b.net - a.net);
+  return true;
+}
+function reindexData() {
+  S.all = [...S.upcoming, ...S.past];
+  S.ordered = [...S.all].sort((a, b) => a.net - b.net);
+  S.byId = new Map(S.all.map(l => [l.id, l]));
+}
+function retireFlownLaunches() {                    // wall-clock tick: a launch crossed T+grace between feed refreshes
+  if (!partitionFlown()) return;
+  reindexData();
+  feedSig = feedSignature(S.upcoming, S.past);
+  renderAll();
 }
 function updateSourceBadge() {
   const badge = $('#src-badge'), t = $('#src-txt'), foot = $('#foot-src');
@@ -2698,10 +2734,10 @@ function diffFeed(prev, next) {
       if (delta >= SCRUB_MS) events.push({ type: 'scrub', l, oldNet: old.net, delta });
       else if (Math.abs(delta) >= SLIP_MS) events.push({ type: delta > 0 ? 'slip' : 'advance', l, oldNet: old.net, delta });
     }
-    if (old.status !== l.status) {
+    if (old.status !== l.status && !old.isPast) {   // never re-announce a launch we've already retired
       if (l.status === 'hold') events.push({ type: 'hold', l });
       else if (l.status === 'go') events.push({ type: 'go', l });
-      else if (!old.isPast && (l.status === 'failure' || l.status === 'partial')) events.push({ type: 'outcome', l });
+      else if (l.status === 'failure' || l.status === 'partial') events.push({ type: 'outcome', l });
     }
   }
   return events;
@@ -5608,6 +5644,7 @@ function boot() {
   window.addEventListener('hashchange', readHash);
   setInterval(cdTickAll, 1000);
   cdTickAll();
+  setInterval(retireFlownLaunches, 30000);         // retire launches as they cross T+grace (§7d)
   loadSpaceWeather();                              // fire-and-forget NOAA space-weather (Analytics panel)
   loadFeed()
     .then(({ upcoming, past, cached, provider }) => {
