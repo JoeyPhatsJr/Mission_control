@@ -6,7 +6,7 @@ compatibility_date = "2026-01-01"
 # wrangler kv namespace create SUBS   → paste the generated id here
 [[kv_namespaces]]
 binding = "SUBS"
-id = "REPLACE_WITH_KV_NAMESPACE_ID"
+id = "41b338aa2e6d4a94b90cabeed0dad201"
 
 [triggers]
 crons = ["*/10 * * * *"]
@@ -16,5 +16,5 @@ crons = ["*/10 * * * *"]
 ALLOWED_ORIGINS = "https://joeyphatsjr.github.io,http://localhost:8000,http://127.0.0.1:8000"
 VAPID_SUBJECT = "mailto:jwhabich@gmail.com"
 # Public key from `node gen-keys.mjs` (the same value goes into index.html PUSH.vapidKey)
-VAPID_PUBLIC_KEY = "REPLACE_WITH_VAPID_PUBLIC_KEY"
+VAPID_PUBLIC_KEY = "BE6S0R8g0Sme_7uoAExwJUyVZvBd2jbHMJNiaYDVZ40Jda3QOssRR_LVk_MgqA6fog1eVEPca8Gc3EMQexO1YAQ"
 # The PRIVATE key is a secret, never a var:  wrangler secret put VAPID_PRIVATE_KEY

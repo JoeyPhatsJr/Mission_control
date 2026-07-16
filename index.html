@@ -5000,8 +5000,8 @@ function saveAlertPrefs() {
    app behaves exactly as before. iOS only grants push to Home-Screen
    installs and only from a user gesture, hence the explicit toggle. ── */
 const PUSH = {
-  worker: '',        // e.g. 'https://mc-push.<account>.workers.dev'
-  vapidKey: '',      // VAPID public key from push-worker/gen-keys.mjs
+  worker: 'https://mc-push.joeyphatsjr.workers.dev',
+  vapidKey: 'BE6S0R8g0Sme_7uoAExwJUyVZvBd2jbHMJNiaYDVZ40Jda3QOssRR_LVk_MgqA6fog1eVEPca8Gc3EMQexO1YAQ',
 };
 const pushSupported = () =>
   !!(PUSH.worker && PUSH.vapidKey && CAN_EMBED && 'serviceWorker' in navigator && 'PushManager' in window && 'Notification' in window);
