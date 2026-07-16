@@ -97,9 +97,20 @@ function fmtTminusFine(msTo) {
 }
 function deepLink(l) { return l ? CONFIG.APP_URL + '#launch=' + l.id : CONFIG.APP_URL; }
 
+/* ── Picker: next launch + up-next queue ─────────────────────────── */
+function pickLaunch(launches, now) {
+  const grace = CONFIG.GRACE_MIN * 60000;
+  const pool = (launches || [])
+    .filter(Boolean)
+    .filter(l => (CONFIG.COUNTRY ? l.country === CONFIG.COUNTRY : true))
+    .filter(l => l.net > now - grace)
+    .sort((a, b) => a.net - b.net);
+  return { current: pool[0] || null, queue: pool.slice(1, 1 + CONFIG.QUEUE_LEN) };
+}
+
 if (typeof module !== 'undefined' && module.exports !== undefined) {
   module.exports = {
     CONFIG, provColor, normalize, padCountry, padShort,
-    isTBD, fmtDate, fmtTminus, fmtTminusFine, deepLink,
+    isTBD, fmtDate, fmtTminus, fmtTminusFine, deepLink, pickLaunch,
   };
 }

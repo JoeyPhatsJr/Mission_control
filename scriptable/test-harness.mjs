@@ -193,5 +193,24 @@ test('formatters: fmtTminus / fmtTminusFine / fmtDate / isTBD / deepLink', () =>
   assert.equal(W.deepLink(null), 'https://joeyphatsjr.github.io/Mission_control/');
 });
 
+test('pickLaunch filters to US pads, sorts, honors the T+30m grace window', () => {
+  const { exports: W } = loadWidget();
+  const mk = (id, net, country = 'USA') => ({ id, name: id, provider: 'SpaceX', vehicle: 'F9', padName: 'SLC-40', country, net, windowEnd: NaN, statusAbbrev: 'Go', probability: 90 });
+  const H = 3600000, M = 60000;
+  const launches = [
+    mk('later', NOW + 5 * H),
+    mk('foreign', NOW + 1 * H, 'CHN'),          // filtered out
+    mk('in-grace', NOW - 10 * M),               // T+10m → still current
+    mk('too-old', NOW - 45 * M),                // past grace → dropped
+    null,                                        // defensive
+    mk('q2', NOW + 8 * H), mk('q3', NOW + 9 * H), mk('q4', NOW + 10 * H),
+  ];
+  const { current, queue } = W.pickLaunch(launches, NOW);
+  assert.equal(current.id, 'in-grace');
+  assert.deepEqual(queue.map(l => l.id), ['later', 'q2', 'q3']);  // capped at QUEUE_LEN
+  assert.equal(W.pickLaunch([mk('cn', NOW + H, 'CHN')], NOW).current, null);
+  assert.equal(W.pickLaunch([], NOW).current, null);
+});
+
 export { FIXTURE };
 await run();
