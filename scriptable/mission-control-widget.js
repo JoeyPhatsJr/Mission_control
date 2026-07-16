@@ -374,13 +374,50 @@ async function makeWidget(family, now) {
   return w;
 }
 
+/* ── Entrypoint ──────────────────────────────────────────────────── */
+async function main(nowOverride) {
+  const now = nowOverride ?? Date.now();
+  if (config.runsInWidget) {
+    const w = await makeWidget(config.widgetFamily, now);
+    Script.setWidget(w);
+    Script.complete();
+    return;
+  }
+  // Run manually in the Scriptable app → preview menu for every family
+  const fams = ['accessoryRectangular', 'accessoryCircular', 'accessoryInline', 'small', 'medium', 'large'];
+  while (true) {
+    const alert = new Alert();
+    alert.title = 'Mission Control widget';
+    alert.message = 'Preview a family';
+    for (const f of fams) alert.addAction(f);
+    alert.addCancelAction('Done');
+    const i = await alert.presentSheet();
+    if (i < 0 || i >= fams.length) break;
+    const fam = fams[i];
+    const w = await makeWidget(fam, Date.now());
+    if (fam === 'small') await w.presentSmall();
+    else if (fam === 'large') await w.presentLarge();
+    else if (fam === 'accessoryRectangular' && w.presentAccessoryRectangular) await w.presentAccessoryRectangular();
+    else if (fam === 'accessoryCircular' && w.presentAccessoryCircular) await w.presentAccessoryCircular();
+    else if (fam === 'accessoryInline' && w.presentAccessoryInline) await w.presentAccessoryInline();
+    else if (fam.startsWith('accessory')) await w.presentSmall();   // older Scriptable
+    else await w.presentMedium();
+  }
+  Script.complete();
+}
+
+if (typeof config !== 'undefined' && (config.runsInWidget || config.runsInApp)) {
+  main();
+}
+
 if (typeof module !== 'undefined' && module.exports !== undefined) {
   module.exports = {
     CONFIG, provColor, normalize, padCountry, padShort,
-    isTBD, fmtDate, fmtTminus, fmtTminusFine, deepLink, pickLaunch,
-    loadLaunches, readCache, writeCache, cachePath,
+    isTBD, fmtDate, fmtTminus, fmtTminusFine, deepLink,
+    pickLaunch, loadLaunches, readCache, writeCache, cachePath,
     UI, goColor, countdownRow, staleStamp, buildMessage, ringImage, barImage,
     buildLockRect, buildLockCircle, buildLockInline,
-    headerRow, mediumContent, buildHomeSmall, buildHomeMedium, buildHomeLarge, makeWidget,
+    headerRow, mediumContent, buildHomeSmall, buildHomeMedium, buildHomeLarge,
+    makeWidget, main,
   };
 }

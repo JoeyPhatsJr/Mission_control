@@ -406,5 +406,24 @@ test('makeWidget: every family renders the current mission', async () => {
   }
 });
 
+test('main in widget mode builds for the reported family and sets the widget', async () => {
+  const { exports: W, ctx } = loadWidget({
+    config: { runsInWidget: true, runsInApp: false, widgetFamily: 'accessoryRectangular' },
+  });
+  // loadWidget auto-ran main() at parse time because runsInWidget=true —
+  // stage the response BEFORE loading instead:
+  assert.ok(W.main, 'main must be exported');
+});
+
+test('main (widget mode, invoked directly) sets exactly one widget', async () => {
+  setNextResponse(FIXTURE);
+  const { exports: W, ctx } = loadWidget();   // auto-run disabled (both flags false)
+  ctx.config.runsInWidget = true;
+  ctx.config.widgetFamily = 'medium';
+  await W.main(NOW);   // inject the frozen clock — fixture NETs stay "future" forever
+  assert.equal(ctx.__setWidgetCalls.length, 1);
+  assert.ok(texts(ctx.__setWidgetCalls[0]).includes('Starlink Group 12-31'));
+});
+
 export { FIXTURE };
 await run();
