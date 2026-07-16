@@ -4321,7 +4321,7 @@ function locGeom(canvas) {
   const st = canvas._loc;
   const w = canvas.clientWidth || 640, h = canvas.clientHeight || 150;
   const dppY = st.span / h;
-  const dppX = dppY / Math.max(0.2, Math.cos(st.cLat * Math.PI / 180));   // equirectangular aspect at centre lat
+  const dppX = dppY / Math.max(0.2, Math.cos(st.tlat * Math.PI / 180));   // equirectangular aspect fixed at the pad latitude — decoupling it from the moving centre stops zoom/pan from sliding the map sideways
   return {
     w, h, dppX, dppY,
     proj: (lon, la) => [w / 2 + (lon - st.cLon) / dppX, h / 2 - (la - st.cLat) / dppY],
