@@ -3,3 +3,4 @@
 *.log
 scratchpad/
 .superpowers/
+.playwright-mcp/

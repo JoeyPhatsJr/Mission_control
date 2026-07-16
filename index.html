@@ -2405,6 +2405,19 @@ const S = {
   alerts: { enabled: true, mins: new Set([1440, 60, 10, 0]) },   // reminder prefs (persisted)
 };
 function setData(upcoming, past, source, provider) {
+  /* MC-3 feed watch: diff live→live refreshes before S is overwritten
+     (seed NETs are synthetic, so any seed side would diff as garbage) */
+  const nextLive = provider === 'll2' || provider === 'rll';
+  let feedEvents = [];
+  if (S.feedProvider !== 'seed' && nextLive) {
+    const next = [...upcoming, ...past];
+    feedEvents = diffFeed(S.all, next);
+    for (const l of next) {                        // carry slip markers across refreshes
+      const old = S.byId.get(l.id);
+      if (old && old !== l && old.netChanged && !l.netChanged && old.net === l.net) l.netChanged = old.netChanged;
+    }
+    markFeedEvents(feedEvents);                    // markers before render, toasts after
+  }
   S.upcoming = [...upcoming].sort((a, b) => a.net - b.net);
   S.past = [...past].sort((a, b) => b.net - a.net);
   S.all = [...S.upcoming, ...S.past];
@@ -2429,6 +2442,8 @@ function setData(upcoming, past, source, provider) {
   }
   const side = $('#globe-side');
   if (side && side.classList.contains('open')) closePadPanel();
+  feedSig = feedSignature(S.upcoming, S.past);
+  if (feedEvents.length) applyFeedEvents(feedEvents);   // after renderAll — hero is fresh
 }
 function updateSourceBadge() {
   const badge = $('#src-badge'), t = $('#src-txt'), foot = $('#foot-src');
@@ -2606,6 +2621,112 @@ function notify(title, body) {
       new Notification(title, opts);
     }
   } catch { /* file:// or blocked */ }
+}
+
+/* ════════════════════════════════════════════════════════════════
+   §7c FEED WATCH — scrub/slip/status-change detection (MC-3).
+   The feed is re-polled while the page is visible; when a live→live
+   refresh changes a launch's NET or status, watched launches and the
+   hero get a toast + notification, and the dossier notes the slip.
+   Seed NETs are Date.now()-anchored, so seed data never participates.
+   ════════════════════════════════════════════════════════════════ */
+const SLIP_MS = 5 * MIN;        // NET moves below this are jitter, not news
+const SCRUB_MS = 24 * HOUR;     // a slip this big reads as a scrub/recycle
+const FEED_POLL_MS = 5 * MIN;   // how often we *consider* refreshing (cache-first, usually a no-op)
+const FEED_LIVE_MS = 10 * MIN;  // forced upcoming refetch cadence inside a live window
+let feedSig = '';               // signature of the currently-rendered dataset
+let lastForcedFetch = 0;
+
+function feedSignature(up, past) {
+  return up.length + '·' + past.length + '·' + up.concat(past).map(l => l.id + ':' + l.net + ':' + l.status).join('|');
+}
+function fmtSlip(ms) {
+  const m = Math.round(Math.abs(ms) / MIN);
+  if (m < 60) return m + ' min';
+  const h = Math.floor(m / 60), r = m % 60;
+  if (h < 48) return r ? `${h} h ${String(r).padStart(2, '0')} min` : `${h} h`;
+  return Math.round(h / 24) + ' days';
+}
+/* Pure: compares two normalized launch arrays, returns change events.
+   Same-object entries (the mixed path reuses S arrays) can't have changed. */
+function diffFeed(prev, next) {
+  const before = new Map(prev.map(l => [l.id, l]));
+  const events = [];
+  for (const l of next) {
+    const old = before.get(l.id);
+    if (!old || old === l) continue;
+    if (Number.isFinite(old.net) && Number.isFinite(l.net)) {
+      const delta = l.net - old.net;
+      if (delta >= SCRUB_MS) events.push({ type: 'scrub', l, oldNet: old.net, delta });
+      else if (Math.abs(delta) >= SLIP_MS) events.push({ type: delta > 0 ? 'slip' : 'advance', l, oldNet: old.net, delta });
+    }
+    if (old.status !== l.status) {
+      if (l.status === 'hold') events.push({ type: 'hold', l });
+      else if (l.status === 'go') events.push({ type: 'go', l });
+      else if (!old.isPast && (l.status === 'failure' || l.status === 'partial')) events.push({ type: 'outcome', l });
+    }
+  }
+  return events;
+}
+function feedEventText(e) {
+  const l = e.l;
+  switch (e.type) {
+    case 'scrub':   return { title: 'SCRUB', msg: `${l.name} — recycled to ${fmtDate(l.net)}`, ico: '✕' };
+    case 'slip':    return { title: 'NET SLIP', msg: `${l.name} slipped +${fmtSlip(e.delta)} → ${fmtClock(l.net)}`, ico: '⏱' };
+    case 'advance': return { title: 'NET CHANGE', msg: `${l.name} moved up ${fmtSlip(e.delta)} → ${fmtClock(l.net)}`, ico: '⏱' };
+    case 'hold':    return { title: 'HOLD', msg: `${l.name} — countdown holding`, ico: '⚠' };
+    case 'go':      return { title: 'GO FOR LAUNCH', msg: `${l.name} · ${l.provider} confirmed GO`, ico: '✓' };
+    default:        return { title: stMeta(l.status).label.toUpperCase(), msg: `${l.name} — ${stMeta(l.status).label}`, ico: '✕' };
+  }
+}
+/* Two-phase apply: markers land BEFORE render (setData reconciles an open
+   dossier mid-flight), toasts fire AFTER render (so the hero is fresh).
+   A real NET move re-arms the reminder milestones so T-1h etc. fire
+   again at the new time. */
+function markFeedEvents(events) {
+  for (const e of events) {
+    if (e.type === 'scrub' || e.type === 'slip' || e.type === 'advance') {
+      e.l.netChanged = { from: e.oldNet, delta: e.delta, at: Date.now() };
+      remFiredClear(e.l.id);
+      seedRemindersFor(e.l);
+    }
+  }
+}
+/* Toasts fire for watched launches + the hero only; everything else just
+   gets the silent dossier marker. */
+function applyFeedEvents(events) {
+  const heroId = S.heroLaunch ? S.heroLaunch.id : null;
+  for (const e of events) {
+    if (!S.alerts.enabled || !(S.watch.has(e.l.id) || e.l.id === heroId)) continue;
+    const { title, msg, ico } = feedEventText(e);
+    toast(title, msg, ico);
+    notify(title, msg);
+  }
+}
+async function refreshFeed() {
+  if (document.hidden) return;
+  try {
+    /* Inside a live window the 30-min LL2 cache is too slow for hold/scrub
+       news — force an upcoming-only refetch every 10 min (1 request; LL2's
+       unauth budget is ~15/hr, the normal cycle adds ~4/hr more). */
+    if (S.feedProvider === 'll2' && S.heroLaunch && inLiveWindow(S.heroLaunch)
+        && Date.now() - lastForcedFetch >= FEED_LIVE_MS) {
+      lastForcedFetch = Date.now();
+      const ud = await fetchJSON(API.ll2Up, 9000);
+      const upcoming = (ud.results || []).map(r => normalizeLL2(r, false)).filter(l => l.net);
+      if (upcoming.length) {
+        cacheSet('ll2up', upcoming);
+        if (feedSignature(upcoming, S.past) !== feedSig) setData(upcoming, S.past, 'live', 'll2');
+      }
+      return;
+    }
+    const { upcoming, past, cached, provider } = await loadFeed();
+    if (!upcoming.length && !past.length) return;
+    const up = upcoming.length ? upcoming : S.upcoming, pa = past.length ? past : S.past;
+    if (feedSignature(up, pa) === feedSig) return;   // cache hit / nothing new — skip the re-render
+    const src = (upcoming.length && past.length) ? (cached ? 'cached' : 'live') : 'mixed';
+    setData(up, pa, src, provider);
+  } catch { /* network flake — keep current data; next poll retries (also how seed recovers to live) */ }
 }
 
 /* ── Add to calendar (.ics) — generated & downloaded client-side ── */
@@ -3964,6 +4085,7 @@ function renderModal(l) {
         <div>
           <div class="m-sec-label">Mission</div>
           <div class="m-row"><span class="m-key">NET</span><span class="m-val">${esc(fmtDate(l.net))}</span></div>
+          ${!l.isPast && l.netChanged ? `<div class="m-row"><span class="m-key">Updated</span><span class="m-val">${l.netChanged.delta > 0 ? 'slipped +' : 'moved up −'}${esc(fmtSlip(l.netChanged.delta))}</span></div>` : ''}
           <div class="m-row"><span class="m-key">UTC</span><span class="m-val">${esc(fmtUTC(l.net))}</span></div>
           <div class="m-row"><span class="m-key">Window</span><span class="m-val">${esc(fmtClock(l.windowStart ?? l.net))}${l.windowEnd ? ' – ' + esc(fmtClock(l.windowEnd)) : ''}</span></div>
           ${l.orbit ? `<div class="m-row"><span class="m-key">Orbit</span><span class="m-val">${esc(l.orbit)}</span></div>` : ''}
@@ -5265,6 +5387,10 @@ function boot() {
       }
     })
     .catch(() => { announce('Live data unreachable — showing embedded sample data.'); });
+  /* MC-3 feed watch: cache-first re-poll (usually a no-op) + a catch-up
+     check when the tab regains visibility. Also how seed recovers to live. */
+  setInterval(refreshFeed, FEED_POLL_MS);
+  document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshFeed(); });
 }
 boot();
 </script>
