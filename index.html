@@ -84,6 +84,7 @@
   --sp-5: 24px; --sp-6: 32px; --sp-7: 48px; --sp-8: 72px;
   --rad: 8px; --rad-sm: 4px;
   --tabbar-h: 60px;   /* fixed bottom nav height (excl. safe-area inset) */
+  --maxw: 1600px;     /* content max width — embrace desktop width */
   color-scheme: dark;
 }
 
@@ -306,8 +307,8 @@ body::before {
 /* ── layout ──────────────────────────────────────────────────── */
 main {
   position: relative; z-index: 2;
-  max-width: 1440px; margin: 0 auto;
-  padding: var(--sp-6) clamp(16px, 3vw, 32px) var(--sp-6);
+  max-width: var(--maxw); margin: 0 auto;
+  padding: var(--sp-6) clamp(16px, 3.5vw, 44px) var(--sp-6);
 }
 .panel { display: none; }
 .panel.active { display: block; animation: panel-in 0.32s ease; }
@@ -472,16 +473,34 @@ main {
 .hero.imminent .hw-fill { background: linear-gradient(90deg, var(--orange), var(--amber)); }
 .hero.launched .hw-fill { background: linear-gradient(90deg, var(--accent-d), var(--green)); }
 
-.hero-media { position: relative; min-height: 260px; overflow: hidden; }
+.hero-media {
+  position: relative; min-height: 260px; overflow: hidden;
+  /* designed placeholder so the panel reads intentionally even while the
+     photo loads or when the CDN is unreachable (offline / file://) */
+  background:
+    radial-gradient(115% 80% at 82% 16%, color-mix(in srgb, var(--prov, var(--accent)) 22%, transparent), transparent 52%),
+    radial-gradient(90% 90% at 96% 108%, color-mix(in srgb, var(--accent) 12%, transparent), transparent 58%),
+    linear-gradient(140deg, var(--surf3), var(--surf) 72%);
+}
+/* faint orbital arc + planet limb in the placeholder */
+.hero-media::before {
+  content: ''; position: absolute; z-index: 0;
+  width: 150%; aspect-ratio: 1; right: -30%; top: -46%;
+  border-radius: 50%;
+  border: 1px solid color-mix(in srgb, var(--prov, var(--accent)) 26%, transparent);
+  box-shadow: 0 0 60px -10px color-mix(in srgb, var(--prov, var(--accent)) 28%, transparent) inset;
+  pointer-events: none;
+}
 .hero-media img {
   position: absolute; inset: 0; width: 100%; height: 100%;
-  object-fit: cover; display: block;
+  object-fit: cover; display: block; z-index: 1;
+  color: transparent;                 /* hide raw alt text if the photo fails (offline) — alt stays for screen readers */
   filter: brightness(0.82) saturate(0.9);
   transition: transform 8s ease, filter 0.5s ease;
 }
 .hero:hover .hero-media img { transform: scale(1.05); filter: brightness(0.92) saturate(1); }
 .hero-media::after {
-  content: ''; position: absolute; inset: 0;
+  content: ''; position: absolute; inset: 0; z-index: 2;
   background: linear-gradient(to right, var(--surf) 0%, transparent 38%),
               linear-gradient(to top, color-mix(in srgb, var(--surf) 82%, transparent) 0%, transparent 46%);
 }
@@ -602,10 +621,16 @@ main {
   transition: opacity 0.2s ease, box-shadow 0.2s ease;
 }
 .card:hover::before, .card:focus-visible::before { opacity: 1; box-shadow: 0 0 14px var(--prov, var(--accent)); }
-.card-media { position: relative; height: 210px; overflow: hidden; flex-shrink: 0; }
+.card-media {
+  position: relative; height: 210px; overflow: hidden; flex-shrink: 0;
+  background:
+    radial-gradient(120% 80% at 78% 12%, color-mix(in srgb, var(--prov, var(--accent)) 20%, transparent), transparent 55%),
+    linear-gradient(150deg, var(--surf3), var(--surf) 78%);
+}
 .card-media img {
   position: absolute; inset: 0;
   width: 100%; height: 100%; object-fit: cover; display: block;
+  color: transparent;                 /* hide raw alt text if the photo fails (offline) — alt stays for screen readers */
   filter: brightness(0.8) saturate(0.85);
   transition: transform 0.5s ease, filter 0.5s ease;
 }
@@ -1567,8 +1592,8 @@ main {
 /* ── footer ──────────────────────────────────────────────────── */
 .foot {
   position: relative; z-index: 2;
-  max-width: 1440px; margin: 0 auto;
-  padding: 0 clamp(16px, 3vw, 32px) calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 28px);
+  max-width: var(--maxw); margin: 0 auto;
+  padding: 0 clamp(16px, 3.5vw, 44px) calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 28px);
   display: flex; flex-wrap: wrap; gap: 8px 24px;
   justify-content: space-between;
   font-family: var(--fm); font-size: 0.58rem; letter-spacing: 0.12em;
