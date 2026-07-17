@@ -123,7 +123,7 @@
   color-scheme: light;
 }
 
-html { scroll-behavior: smooth; overflow-x: hidden; overscroll-behavior-x: none; }
+html { scroll-behavior: smooth; overflow-x: hidden; overscroll-behavior: none; -webkit-text-size-adjust: 100%; }
 html, body { height: 100%; max-width: 100%; }
 
 body {
@@ -133,8 +133,11 @@ body {
   background-attachment: fixed;
   color: var(--text);
   min-height: 100vh;
+  min-height: 100dvh;                 /* dynamic viewport — avoids iOS URL-bar jump */
   overflow-x: hidden;
-  overscroll-behavior-x: none;
+  overscroll-behavior: none;          /* no rubber-band that detaches the fixed bars */
+  -webkit-overflow-scrolling: touch;  /* momentum scrolling on iOS */
+  -webkit-tap-highlight-color: transparent;   /* no grey flash on tap */
   transition: background 0.35s ease, color 0.35s ease;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
@@ -196,7 +199,11 @@ body::before {
   gap: var(--sp-4);
 }
 .topbar {
-  padding: 0 max(clamp(16px, 3vw, 36px), env(safe-area-inset-left)) 0 max(clamp(16px, 3vw, 36px), env(safe-area-inset-right));
+  /* align the brand/actions with the centered content column on wide screens,
+     while the bar itself stays full-bleed */
+  --gutter: max(clamp(16px, 3.5vw, 44px), calc((100% - var(--maxw)) / 2 + 44px));
+  padding-left: max(var(--gutter), env(safe-area-inset-left));
+  padding-right: max(var(--gutter), env(safe-area-inset-right));
   padding-top: env(safe-area-inset-top);        /* fill behind the notch / Dynamic Island */
   height: calc(60px + env(safe-area-inset-top));
   background: linear-gradient(180deg, color-mix(in srgb, var(--bg) 92%, transparent), color-mix(in srgb, var(--bg) 80%, transparent));
@@ -273,6 +280,7 @@ body::before {
   background: var(--accent); box-shadow: 0 0 12px var(--accent), 0 0 4px var(--accent);
 }
 .tab:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
+@media (max-width: 380px) { .tab { font-size: 0.5rem; letter-spacing: 0.06em; } .tab-ic { width: 21px; height: 21px; } }
 
 .top-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 .icon-btn {
@@ -285,6 +293,10 @@ body::before {
   transition: color 0.15s, border-color 0.15s, background 0.15s;
 }
 .icon-btn:hover { color: var(--text); border-color: var(--border3); background: var(--surf2); }
+/* comfortable hit targets on touch devices (≥44px) */
+@media (pointer: coarse) {
+  .icon-btn { min-height: 44px; min-width: 44px; justify-content: center; }
+}
 .icon-btn kbd {
   font-family: var(--fm); font-size: 0.56rem;
   border: 1px solid var(--border2); border-radius: 3px;
