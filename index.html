@@ -251,7 +251,9 @@ body::before {
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 150;
   display: flex; justify-content: center; align-items: stretch;
   gap: clamp(2px, 0.8vw, 10px);
-  padding: 7px max(10px, env(safe-area-inset-left)) calc(7px + env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-right));
+  /* clear the home indicator but trim the excess — the raw 34px inset made
+     the labels float with a big empty band beneath them on iPhone */
+  padding: 5px max(10px, env(safe-area-inset-left)) max(6px, calc(env(safe-area-inset-bottom) - 12px)) max(10px, env(safe-area-inset-right));
   background: linear-gradient(0deg, color-mix(in srgb, var(--bg) 95%, transparent), color-mix(in srgb, var(--bg) 74%, transparent));
   backdrop-filter: blur(22px) saturate(170%);
   -webkit-backdrop-filter: blur(22px) saturate(170%);
@@ -5887,32 +5889,6 @@ function boot() {
   document.addEventListener('visibilitychange', () => { if (!document.hidden) refreshFeed(); });
 }
 boot();
-
-/* ── TEMPORARY diagnostic (remove after debugging the standalone bottom gap) ── */
-(function diag() {
-  const probe = document.createElement('div');
-  probe.style.cssText = 'position:fixed;bottom:0;left:0;height:env(safe-area-inset-bottom);width:1px;pointer-events:none;';
-  document.body.appendChild(probe);
-  const panel = document.createElement('div');
-  panel.style.cssText = 'position:fixed;top:calc(env(safe-area-inset-top) + 6px);left:50%;transform:translateX(-50%);z-index:99999;background:#000;color:#0f0;font:11px/1.5 monospace;padding:8px 10px;border:1px solid #0f0;border-radius:6px;white-space:pre;max-width:94vw;';
-  document.body.appendChild(panel);
-  function upd() {
-    const sab = getComputedStyle(probe).height;
-    const bar = document.querySelector('.tabbar').getBoundingClientRect();
-    const vv = window.visualViewport;
-    panel.textContent =
-      `standalone=${(navigator.standalone) || matchMedia('(display-mode:standalone)').matches}\n` +
-      `screen.h=${screen.height}  inner.h=${window.innerHeight}\n` +
-      `visualVP.h=${vv ? Math.round(vv.height) : '?'}  docEl.h=${document.documentElement.clientHeight}\n` +
-      `safe-bottom=${sab}  safe-top=${getComputedStyle(document.documentElement).getPropertyValue('padding') || '?'}\n` +
-      `tabbar.bottom=${Math.round(bar.bottom)}  gapBelow=${Math.round(window.innerHeight - bar.bottom)}\n` +
-      `bodyBG=${getComputedStyle(document.body).backgroundColor}`;
-  }
-  upd();
-  window.addEventListener('resize', upd);
-  if (window.visualViewport) window.visualViewport.addEventListener('resize', upd);
-  setInterval(upd, 1000);
-})();
 </script>
 </body>
 </html>
