@@ -83,6 +83,7 @@
   --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px;
   --sp-5: 24px; --sp-6: 32px; --sp-7: 48px; --sp-8: 72px;
   --rad: 8px; --rad-sm: 4px;
+  --tabbar-h: 60px;   /* fixed bottom nav height (excl. safe-area inset) */
   color-scheme: dark;
 }
 
@@ -193,7 +194,6 @@ body::before {
   display: flex; align-items: center; justify-content: space-between;
   gap: var(--sp-4);
 }
-.topbar nav { display: contents; }   /* .tabs itself is the flex item */
 .topbar {
   padding: 0 max(clamp(16px, 3vw, 36px), env(safe-area-inset-left)) 0 max(clamp(16px, 3vw, 36px), env(safe-area-inset-right));
   padding-top: env(safe-area-inset-top);        /* fill behind the notch / Dynamic Island */
@@ -237,27 +237,41 @@ body::before {
 }
 @keyframes orbit-ring { to { transform: rotate(360deg); } }
 
-.tabs {
-  display: flex; height: 60px; min-width: 0;
-  overflow-x: auto; scrollbar-width: none;
+/* ── bottom tab bar (primary navigation, all breakpoints) ─────── */
+.tabbar {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 150;
+  display: flex; justify-content: center; align-items: stretch;
+  gap: clamp(2px, 0.8vw, 10px);
+  padding: 7px max(10px, env(safe-area-inset-left)) calc(7px + env(safe-area-inset-bottom)) max(10px, env(safe-area-inset-right));
+  background: linear-gradient(0deg, color-mix(in srgb, var(--bg) 95%, transparent), color-mix(in srgb, var(--bg) 74%, transparent));
+  backdrop-filter: blur(22px) saturate(170%);
+  -webkit-backdrop-filter: blur(22px) saturate(170%);
+  border-top: 1px solid var(--border);
+  box-shadow: 0 -1px 0 var(--hair) inset, 0 -14px 34px -22px rgba(0,0,0,0.85);
 }
-.tabs::-webkit-scrollbar { display: none; }
 .tab {
-  height: 100%; padding: 0 clamp(12px, 2vw, 22px);
-  border: none; border-bottom: 2px solid transparent;
-  background: transparent; color: var(--dim); cursor: pointer;
-  font-family: var(--fd); font-size: 0.66rem; font-weight: 600;
-  letter-spacing: 0.2em; text-transform: uppercase;
-  transition: color 0.18s, border-color 0.18s;
-  white-space: nowrap; flex-shrink: 0;
+  position: relative;
+  flex: 1 1 0; min-width: 0; max-width: 128px;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 4px;
+  min-height: 46px; padding: 6px 4px;
+  background: transparent; border: 0; border-radius: 13px; cursor: pointer;
+  color: var(--dim);
+  font-family: var(--fd); font-size: 0.55rem; font-weight: 600;
+  letter-spacing: 0.12em; text-transform: uppercase; white-space: nowrap;
+  transition: color 0.18s, background 0.18s;
+  -webkit-tap-highlight-color: transparent;
 }
-.tab[aria-selected="true"] { color: var(--accent); border-bottom-color: var(--accent); text-shadow: 0 0 16px var(--glow-soft); }
-.tab[aria-selected="true"]::after {
-  content: ''; position: absolute; left: 12px; right: 12px; bottom: -2px; height: 2px;
+.tab-ic { width: 23px; height: 23px; flex-shrink: 0; transition: filter 0.18s, transform 0.18s; }
+.tab:hover:not([aria-selected="true"]) { color: var(--text2); }
+.tab:active .tab-ic { transform: scale(0.9); }
+.tab[aria-selected="true"] { color: var(--accent); background: color-mix(in srgb, var(--accent) 8%, transparent); }
+.tab[aria-selected="true"] .tab-ic { filter: drop-shadow(0 0 8px var(--glow)); }
+.tab[aria-selected="true"]::before {
+  content: ''; position: absolute; top: -1px; left: 50%; transform: translateX(-50%);
+  width: 26px; height: 3px; border-radius: 0 0 3px 3px;
   background: var(--accent); box-shadow: 0 0 12px var(--accent), 0 0 4px var(--accent);
 }
-.tab { position: relative; }
-.tab:hover:not([aria-selected="true"]) { color: var(--text2); }
+.tab:focus-visible { outline: 2px solid var(--accent); outline-offset: -2px; }
 
 .top-actions { display: flex; align-items: center; gap: 10px; flex-shrink: 0; }
 .icon-btn {
@@ -293,7 +307,7 @@ body::before {
 main {
   position: relative; z-index: 2;
   max-width: 1440px; margin: 0 auto;
-  padding: var(--sp-6) clamp(16px, 3vw, 32px) var(--sp-8);
+  padding: var(--sp-6) clamp(16px, 3vw, 32px) var(--sp-6);
 }
 .panel { display: none; }
 .panel.active { display: block; animation: panel-in 0.32s ease; }
@@ -1223,7 +1237,7 @@ main {
 .feed-actions { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
 
 #pip {
-  position: fixed; right: 16px; bottom: 16px; z-index: 1500;
+  position: fixed; right: 16px; bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 14px); z-index: 1500;
   width: min(400px, calc(100vw - 32px));
   background: var(--surf);
   border: 1px solid color-mix(in srgb, var(--accent) 30%, transparent);
@@ -1246,7 +1260,7 @@ main {
 }
 .pip-btn:hover { color: var(--text); border-color: var(--accent); }
 .pip-body { position: relative; aspect-ratio: 16 / 9; background: #000; }
-@media (max-width: 460px) { #pip { right: 8px; bottom: 8px; } }
+@media (max-width: 460px) { #pip { right: 8px; bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 10px); } }
 
 /* ── command palette ─────────────────────────────────────────── */
 .pal-frame {
@@ -1442,7 +1456,7 @@ main {
 
 /* ── mission alert toasts ────────────────────────────────────── */
 #toasts {
-  position: fixed; left: 16px; bottom: 16px; z-index: 1400;
+  position: fixed; left: 16px; bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 14px); z-index: 1400;
   display: flex; flex-direction: column; gap: 10px;
   width: min(340px, calc(100vw - 32px));
 }
@@ -1554,7 +1568,7 @@ main {
 .foot {
   position: relative; z-index: 2;
   max-width: 1440px; margin: 0 auto;
-  padding: 0 clamp(16px, 3vw, 32px) 40px;
+  padding: 0 clamp(16px, 3vw, 32px) calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 28px);
   display: flex; flex-wrap: wrap; gap: 8px 24px;
   justify-content: space-between;
   font-family: var(--fm); font-size: 0.58rem; letter-spacing: 0.12em;
@@ -1592,10 +1606,6 @@ main {
   .tl-detail-facts { grid-column: 1 / -1; }
 }
 @media (max-width: 720px) {
-  .topbar { flex-wrap: wrap; height: auto; padding-top: calc(10px + env(safe-area-inset-top)); padding-bottom: 0; row-gap: 0; }
-  .brand { order: 1; }
-  .top-actions { order: 2; margin-left: auto; }
-  .tabs { order: 3; width: 100%; height: 46px; justify-content: flex-start; }
   .icon-btn .btn-txt, .icon-btn kbd { display: none; }
   .tl-row { grid-template-columns: 64px minmax(0,1fr) 90px 18px; gap: 10px; }
   .tl-veh { display: none; }
@@ -1641,16 +1651,6 @@ main {
     <div class="brand-mark" aria-hidden="true"></div>
     <div>MISSION CONTROL<small>ORBITAL LAUNCH TRACKER</small></div>
   </div>
-  <nav aria-label="Sections">
-    <div class="tabs" role="tablist" aria-label="Mission Control sections">
-      <button class="tab" id="tab-missions"  role="tab" aria-selected="true"  aria-controls="panel-missions"  data-tab="missions">Missions</button>
-      <button class="tab" id="tab-timeline"  role="tab" aria-selected="false" aria-controls="panel-timeline"  data-tab="timeline" tabindex="-1">Timeline</button>
-      <button class="tab" id="tab-globe"     role="tab" aria-selected="false" aria-controls="panel-globe"     data-tab="globe" tabindex="-1">Globe</button>
-      <button class="tab" id="tab-analytics" role="tab" aria-selected="false" aria-controls="panel-analytics" data-tab="analytics" tabindex="-1">Analytics</button>
-      <button class="tab" id="tab-companies" role="tab" aria-selected="false" aria-controls="panel-companies" data-tab="companies" tabindex="-1">Companies</button>
-      <button class="tab" id="tab-fleet" role="tab" aria-selected="false" aria-controls="panel-fleet" data-tab="fleet" tabindex="-1">Fleet</button>
-    </div>
-  </nav>
   <div class="top-actions">
     <button class="icon-btn" id="search-btn" aria-label="Search launches, providers and pads">
       <span aria-hidden="true">⌕</span><span class="btn-txt">SEARCH</span><kbd>/</kbd>
@@ -1807,6 +1807,33 @@ main {
   </section>
 
 </main>
+
+<nav class="tabbar" role="tablist" aria-label="Mission Control sections">
+  <button class="tab" id="tab-missions" role="tab" aria-selected="true" aria-controls="panel-missions" data-tab="missions">
+    <svg class="tab-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3c2.4 2.2 3.7 4.9 3.7 8.2L14 16h-4l-1.7-4.8C6.8 7.9 8.1 5.2 12 3Z"/><circle cx="12" cy="9.3" r="1.25"/><path d="M8.4 14.6 6 17.6l3-.8M15.6 14.6 18 17.6l-3-.8"/></svg>
+    <span class="tab-lbl">Missions</span>
+  </button>
+  <button class="tab" id="tab-timeline" role="tab" aria-selected="false" aria-controls="panel-timeline" data-tab="timeline" tabindex="-1">
+    <svg class="tab-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="5" cy="7" r="1.2"/><path d="M9 7h11"/><circle cx="5" cy="12" r="1.2"/><path d="M9 12h11"/><circle cx="5" cy="17" r="1.2"/><path d="M9 17h11"/></svg>
+    <span class="tab-lbl">Timeline</span>
+  </button>
+  <button class="tab" id="tab-globe" role="tab" aria-selected="false" aria-controls="panel-globe" data-tab="globe" tabindex="-1">
+    <svg class="tab-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="9"/><path d="M3 12h18"/><ellipse cx="12" cy="12" rx="4" ry="9"/></svg>
+    <span class="tab-lbl">Globe</span>
+  </button>
+  <button class="tab" id="tab-analytics" role="tab" aria-selected="false" aria-controls="panel-analytics" data-tab="analytics" tabindex="-1">
+    <svg class="tab-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h16"/><path d="M7 20v-5"/><path d="M12 20V8"/><path d="M17 20v-9"/></svg>
+    <span class="tab-lbl">Analytics</span>
+  </button>
+  <button class="tab" id="tab-companies" role="tab" aria-selected="false" aria-controls="panel-companies" data-tab="companies" tabindex="-1">
+    <svg class="tab-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M4 20h16"/><path d="M6 20V6a1 1 0 0 1 1-1h5a1 1 0 0 1 1 1v14"/><path d="M13 20v-8h4a1 1 0 0 1 1 1v7"/><path d="M9 9h1M9 13h1"/></svg>
+    <span class="tab-lbl">Companies</span>
+  </button>
+  <button class="tab" id="tab-fleet" role="tab" aria-selected="false" aria-controls="panel-fleet" data-tab="fleet" tabindex="-1">
+    <svg class="tab-ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3 3 8l9 5 9-5-9-5Z"/><path d="m3 13 9 5 9-5"/></svg>
+    <span class="tab-lbl">Fleet</span>
+  </button>
+</nav>
 
 <footer class="foot">
   <span>MISSION CONTROL · CONSOLE BUILD MC-2</span>
@@ -5656,7 +5683,7 @@ document.addEventListener('keydown', e => {
   }
 });
 /* roving-tabindex arrow navigation for the tablist */
-$('.tabs').addEventListener('keydown', e => {
+$('.tabbar').addEventListener('keydown', e => {
   const tabs = $$('.tab');
   const i = tabs.indexOf(document.activeElement);
   if (i < 0) return;
