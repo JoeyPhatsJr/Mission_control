@@ -1127,16 +1127,34 @@ main {
 .alt-mark { position: absolute; top: 50%; width: 9px; height: 9px; border-radius: 50%; background: var(--accent); transform: translate(-50%,-50%); box-shadow: 0 0 6px var(--accent); }
 .alt-labels { display: flex; justify-content: space-between; font-family: var(--fm); font-size: 0.44rem; color: var(--dim); letter-spacing: 0.1em; margin-bottom: 9px; }
 @media (max-width: 560px) { .brief-grid { grid-template-columns: 1fr; } }
-/* window weather timeline */
+/* window weather timeline → go/no-go outlook */
 .wx-strip-wrap { border: 1px solid var(--border); border-radius: 8px; background: var(--surf2); padding: 14px 16px 12px; margin-bottom: 20px; }
-.wx-strip { display: flex; gap: 4px; align-items: flex-end; margin: 14px 0 9px; overflow-x: auto; }
-.wx-cell { flex: 1; min-width: 26px; display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 4px 2px 3px; border-radius: 5px; position: relative; }
+.wx-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+.wx-verdict { display: inline-flex; align-items: baseline; gap: 6px; font-family: var(--fd); font-size: 0.66rem; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; padding: 4px 11px; border-radius: 999px; border: 1px solid; }
+.wx-verdict b { font-size: 0.9rem; font-variant-numeric: tabular-nums; }
+.wx-go   { color: var(--green); border-color: color-mix(in srgb, var(--green) 55%, transparent); background: color-mix(in srgb, var(--green) 12%, transparent); }
+.wx-watch{ color: var(--amber); border-color: color-mix(in srgb, var(--amber) 55%, transparent); background: color-mix(in srgb, var(--amber) 12%, transparent); }
+.wx-nogo { color: var(--red);   border-color: color-mix(in srgb, var(--red) 55%, transparent);   background: color-mix(in srgb, var(--red) 12%, transparent); }
+.wx-summary { display: flex; flex-wrap: wrap; gap: 4px 18px; margin-top: 10px; font-family: var(--fm); font-size: 0.62rem; color: var(--text2); letter-spacing: 0.02em; }
+.wx-summary b { color: var(--text); }
+.wx-summary .wx-go { color: var(--green); border: 0; background: none; padding: 0; font-family: var(--fm); font-weight: 700; letter-spacing: 0; }
+.wx-summary .wx-watch { color: var(--amber); border: 0; background: none; padding: 0; font-family: var(--fm); font-weight: 700; letter-spacing: 0; }
+.wx-summary .wx-nogo { color: var(--red); border: 0; background: none; padding: 0; font-family: var(--fm); font-weight: 700; letter-spacing: 0; }
+.wx-strip { display: flex; gap: 4px; align-items: flex-end; margin: 16px 0 9px; overflow-x: auto; }
+.wx-cell { flex: 1; min-width: 26px; display: flex; flex-direction: column; align-items: center; gap: 5px; padding: 4px 2px 3px; border-radius: 5px; position: relative; background: transparent; border: 0; cursor: pointer; font: inherit; }
 .wx-cell.inwin { background: color-mix(in srgb, var(--accent) 9%, transparent); }
+.wx-cell.best { background: color-mix(in srgb, var(--green) 15%, transparent); }
 .wx-cell.t0 { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 55%, transparent); }
 .wx-cell.t0::before { content: '▸ T-0'; position: absolute; top: -13px; font-family: var(--fm); font-size: 0.44rem; letter-spacing: 0.08em; color: var(--accent); white-space: nowrap; }
+.wx-cell.sel { box-shadow: inset 0 0 0 1px var(--text2); }
+.wx-cell:hover .wx-bar, .wx-cell:focus-visible .wx-bar { outline: 1px solid var(--text2); outline-offset: 1px; }
 .wx-bar { width: 10px; height: 46px; background: var(--surf3); border-radius: 3px; display: flex; align-items: flex-end; overflow: hidden; }
 .wx-bar span { display: block; width: 100%; border-radius: 3px 3px 0 0; }
 .wx-hr { font-family: var(--fm); font-size: 0.5rem; color: var(--dim); white-space: nowrap; }
+.wx-detail { font-family: var(--fm); font-size: 0.6rem; color: var(--text2); letter-spacing: 0.02em; padding: 8px 0 10px; min-height: 1.2em; border-top: 1px dashed var(--border); margin-top: 2px; }
+.wx-detail .wx-dt { color: var(--text); font-weight: 600; }
+.wx-detail .lim { color: var(--amber); }
+.wx-detail .lim.nogo { color: var(--red); }
 .wx-legend { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; font-family: var(--fm); font-size: 0.5rem; color: var(--text2); text-transform: uppercase; letter-spacing: 0.06em; }
 .wxl { display: inline-flex; align-items: center; gap: 4px; }
 .wxl i { width: 8px; height: 8px; border-radius: 2px; }
@@ -4160,7 +4178,7 @@ async function loadForecast(l) {
     for (let i = 0; i < h.time.length && tl.length < 14; i++) {
       const ti = h.time[i];
       if (ti < start - 1800 || ti > end + 1800) continue;
-      tl.push({ t: ti * 1000, precip: Math.round(h.precipitation_probability?.[i] ?? 0), wind: Math.round(h.wind_speed_10m?.[i] ?? 0), temp: Math.round(h.temperature_2m?.[i]) });
+      tl.push({ t: ti * 1000, precip: Math.round(h.precipitation_probability?.[i] ?? 0), wind: Math.round(h.wind_speed_10m?.[i] ?? 0), temp: Math.round(h.temperature_2m?.[i]), cloud: Math.round(h.cloud_cover?.[i] ?? 0) });
     }
     wx.timeline = tl.length >= 2 ? tl : null;
     cacheSet('fc-' + l.id, wx);
@@ -4174,23 +4192,99 @@ function applyForecast(l, wx) {
   if (MODAL.openId === l.id && $('#m-content')) renderModal(l);   // refresh the open dossier's Go Call
   if (S.heroLaunch && S.heroLaunch.id === l.id) renderHero();
 }
-// hour-by-hour go/no-go strip across the launch window (real Open-Meteo forecast)
-function wxGoColor(c) { return (c.precip > 60 || c.wind > 26) ? 'var(--red)' : (c.precip > 35 || c.wind > 18) ? 'var(--amber)' : 'var(--green)'; }
+/* ── Window Outlook: a go/no-go timeline from the real Open-Meteo forecast.
+   Each hour is scored against typical pad weather limits; the worst factor
+   (precipitation, surface wind, or thick cloud) sets the hour's verdict and
+   is named. These are ESTIMATES from a public forecast, not an official
+   range-safety poll — labeled "forecast" and framed as scrub risk. ── */
+const WX_LIMITS = [
+  { key: 'Precip', get: c => c.precip,     watch: 35, nogo: 60,  unit: '%',   short: 'precip' },
+  { key: 'Wind',   get: c => c.wind,       watch: 18, nogo: 26,  unit: ' mph', short: 'wind' },
+  { key: 'Cloud',  get: c => c.cloud ?? 0, watch: 85, nogo: 999, unit: '%',   short: 'cloud' },   // thick cloud tops out at WATCH
+];
+const WX_LV = { go: 0, watch: 1, nogo: 2 };
+const WX_NAME = ['GO', 'WATCH', 'NO-GO'];
+const WX_CLS = ['wx-go', 'wx-watch', 'wx-nogo'];
+function wxAssess(c) {
+  let rank = 0, factor = null, val = 0;
+  for (const f of WX_LIMITS) {
+    const v = f.get(c), r = v >= f.nogo ? 2 : v >= f.watch ? 1 : 0;
+    if (r > rank) { rank = r; factor = f; val = v; }
+  }
+  return { rank, level: rank === 2 ? 'nogo' : rank === 1 ? 'watch' : 'go', factor, val };
+}
+function wxColor(rank) { return rank === 2 ? 'var(--red)' : rank === 1 ? 'var(--amber)' : 'var(--green)'; }
+function wxGoColor(c) { return wxColor(wxAssess(c).rank); }   // kept for any other callers
+function wxCellDetail(c) {
+  const a = wxAssess(c);
+  const lim = a.factor ? a.factor.key : null;
+  const chip = (name, v, unit, isLim, nogo) => `<span class="${isLim ? 'lim' + (nogo ? ' nogo' : '') : ''}">${name} ${v}${unit}</span>`;
+  return `<span class="wx-dt">${esc(fmtClock(c.t))}</span> · <span class="${WX_CLS[a.rank]}">${WX_NAME[a.rank]}</span>${a.factor ? ` — limited by ${a.factor.short}` : ' — no constraints'}
+    &nbsp;·&nbsp; ${chip('Precip', c.precip, '%', lim === 'Precip', a.rank === 2)} · ${chip('Wind', c.wind, ' mph', lim === 'Wind', a.rank === 2)} · ${chip('Cloud', c.cloud ?? 0, '%', lim === 'Cloud', a.rank === 2)} · Temp ${c.temp}°F`;
+}
 function weatherStripHTML(l) {
   const tl = l.wxTimeline;
   if (!tl || tl.length < 2) return '';
   const ws = l.windowStart ?? l.net, we = l.windowEnd ?? l.net;
+  const inWin = c => c.t >= ws - 1800000 && c.t <= we + 1800000;
+  const winCells = tl.filter(inWin);
+  const scored = tl.map(c => ({ c, a: wxAssess(c) }));
+  // scrub-risk % over the window: no-go hours weigh 1, watch 0.5
+  const risk = winCells.length
+    ? Math.round(100 * winCells.reduce((s, c) => s + (wxAssess(c).rank === 2 ? 1 : wxAssess(c).rank === 1 ? 0.5 : 0), 0) / winCells.length)
+    : (() => { const a = wxAssess(tl.reduce((b, c) => Math.abs(c.t - l.net) < Math.abs(b.t - l.net) ? c : b)); return a.rank === 2 ? 100 : a.rank === 1 ? 50 : 0; })();
+  const overall = risk >= 55 ? 2 : risk >= 20 ? 1 : 0;
+  // T-0 hour verdict
+  const t0cell = tl.reduce((b, c) => Math.abs(c.t - l.net) < Math.abs(b.t - l.net) ? c : b);
+  const t0a = wxAssess(t0cell);
+  const t0idx = tl.indexOf(t0cell);
+  // best contiguous run of the lowest-rank hours within the window
+  const best = bestGoRun(scored.filter(s => inWin(s.c)));
+  const bestTxt = best
+    ? (best.cells.length === winCells.length && best.rank === 0 ? 'GO across the whole window'
+      : `Best window <b>${esc(fmtClock(best.cells[0].c.t))}${best.cells.length > 1 ? '–' + esc(fmtClock(best.cells[best.cells.length - 1].c.t)) : ''}</b>${best.rank > 0 ? ' (least marginal)' : ''}`)
+    : '';
+  const bestSet = new Set(best ? best.cells.map(s => s.c.t) : []);
   return `<section class="wx-strip-wrap">
-    <div class="brief-title">◉ Window Outlook <span class="brief-est">forecast</span></div>
-    <div class="wx-strip">${tl.map(c => {
-      const t0 = Math.abs(c.t - l.net) < 1800000, inwin = c.t >= ws - 1800000 && c.t <= we + 1800000;
-      return `<div class="wx-cell${t0 ? ' t0' : ''}${inwin ? ' inwin' : ''}" title="${esc(fmtClock(c.t))} · ${c.precip}% precip · ${c.wind} mph · ${c.temp}°F">
-        <div class="wx-bar"><span style="height:${Math.max(5, c.precip)}%;background:${wxGoColor(c)}"></span></div>
+    <div class="wx-head">
+      <div class="brief-title">◉ Window Outlook <span class="brief-est">forecast</span></div>
+      <div class="wx-verdict ${WX_CLS[overall]}"><b>${risk}%</b> scrub risk · ${WX_NAME[overall]}</div>
+    </div>
+    <div class="wx-summary">
+      <span>At T-0: <span class="${WX_CLS[t0a.rank]}">${WX_NAME[t0a.rank]}</span>${t0a.factor ? ` — ${t0a.factor.short} ${t0a.val}${t0a.factor.unit}` : ' — no constraints'}</span>
+      ${bestTxt ? `<span>${bestTxt}</span>` : ''}
+    </div>
+    <div class="wx-strip">${scored.map((s, i) => {
+      const c = s.c, t0 = i === t0idx, inw = inWin(c), isBest = bestSet.has(c.t);
+      return `<button class="wx-cell${t0 ? ' t0' : ''}${inw ? ' inwin' : ''}${isBest ? ' best' : ''}${t0 ? ' sel' : ''}" data-wxi="${i}" aria-label="${esc(fmtClock(c.t))} — ${WX_NAME[s.a.rank]}">
+        <div class="wx-bar"><span style="height:${Math.max(5, c.precip)}%;background:${wxColor(s.a.rank)}"></span></div>
         <div class="wx-hr">${esc(fmtClock(c.t).replace(/:00/, '').replace(/\s?(AM|PM)/i, m => m.trim().toLowerCase()))}</div>
-      </div>`;
+      </button>`;
     }).join('')}</div>
-    <div class="wx-legend"><span class="wxl"><i style="background:var(--green)"></i>Favourable</span><span class="wxl"><i style="background:var(--amber)"></i>Watch</span><span class="wxl"><i style="background:var(--red)"></i>Constraint</span><span class="wx-legend-note">bar = precip% · shaded = window · ▸ = T-0</span></div>
+    <div class="wx-detail" id="wx-detail">${wxCellDetail(t0cell)}</div>
+    <div class="wx-legend"><span class="wxl"><i style="background:var(--green)"></i>Go</span><span class="wxl"><i style="background:var(--amber)"></i>Watch</span><span class="wxl"><i style="background:var(--red)"></i>No-go</span><span class="wx-legend-note">bar = precip% · tap an hour for detail · verdict vs typical pad limits</span></div>
   </section>`;
+}
+/* longest contiguous run at the lowest verdict rank present in the window */
+function bestGoRun(scored) {
+  if (!scored.length) return null;
+  const minRank = Math.min(...scored.map(s => s.a.rank));
+  let best = null, cur = [];
+  for (const s of scored) {
+    if (s.a.rank === minRank) { cur.push(s); if (!best || cur.length > best.cells.length) best = { cells: [...cur], rank: minRank }; }
+    else cur = [];
+  }
+  return best;
+}
+function showWxDetail(idx) {
+  const l = MODAL.openId ? S.byId.get(MODAL.openId) : null;
+  const tl = l && l.wxTimeline;
+  const cell = tl && tl[idx];
+  const box = $('#wx-detail');
+  if (!cell || !box) return;
+  box.innerHTML = wxCellDetail(cell);
+  $$('.wx-cell.sel').forEach(el => el.classList.remove('sel'));
+  const btn = $(`.wx-cell[data-wxi="${idx}"]`); if (btn) btn.classList.add('sel');
 }
 /* local solar-elevation (no API needed): day / twilight / night at the pad at T-0 */
 function sunAltitude(lat, lon, date) {
@@ -5453,11 +5547,12 @@ document.addEventListener('click', e => {
   if (e.target === $('#modal')) { closeModal(); return; }
   if (e.target === $('#palette')) { closePalette(); return; }
   if (e.target === $('#shortcuts') || e.target === $('#alerts-dialog')) { closeSheet(); return; }
-  const t = e.target.closest('[data-tab],[data-open-modal],[data-launch],[data-prov-chip],[data-st-chip],[data-clear-filters],[data-range],[data-expand],[data-co-provider],[data-mstep],[data-pal-idx],[data-feed-play],[data-feed-pip],[data-feed-dock],[data-live-watch],[data-star],[data-watch-filter],[data-ics],[data-clock],[data-sat],[data-glayer],#sat-locate,#density-btn,#search-btn,#theme-btn,#tz-btn,#alerts-btn,#help-btn,#sc-close,#al-close,#clock-close,#clock-fs,#clock-audio,#m-close,#gs-close,#pip-close,#pip-expand');
+  const t = e.target.closest('[data-tab],[data-open-modal],[data-launch],[data-prov-chip],[data-st-chip],[data-clear-filters],[data-range],[data-expand],[data-co-provider],[data-mstep],[data-pal-idx],[data-feed-play],[data-feed-pip],[data-feed-dock],[data-live-watch],[data-star],[data-watch-filter],[data-ics],[data-clock],[data-sat],[data-glayer],[data-wxi],#sat-locate,#density-btn,#search-btn,#theme-btn,#tz-btn,#alerts-btn,#help-btn,#sc-close,#al-close,#clock-close,#clock-fs,#clock-audio,#m-close,#gs-close,#pip-close,#pip-expand');
   if (!t) return;
   if (t.dataset.liveWatch) { watchLiveHero(t.dataset.liveWatch); return; }
   if (t.dataset.sat !== undefined) { openSatPanel(t.dataset.sat); return; }
   if (t.dataset.glayer) { toggleGlobeLayer(t.dataset.glayer); return; }
+  if (t.dataset.wxi !== undefined) { showWxDetail(Number(t.dataset.wxi)); return; }
   if (t.id === 'sat-locate') { findMyPass(); return; }
   if (t.dataset.clock !== undefined) { openClock(t.dataset.clock, t); return; }
   if (t.id === 'clock-close') { closeClock(); return; }
