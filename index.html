@@ -123,14 +123,15 @@
   color-scheme: light;
 }
 
-html { scroll-behavior: smooth; overflow-x: hidden; overscroll-behavior: none; -webkit-text-size-adjust: 100%; }
+html { scroll-behavior: smooth; overflow-x: hidden; overscroll-behavior: none; -webkit-text-size-adjust: 100%; background: var(--bg); }
 html, body { height: 100%; max-width: 100%; }
 
 body {
   font-family: var(--fu);
   font-size: var(--t-base);
   background: var(--bg-glow), var(--bg);
-  background-attachment: fixed;
+  /* NOT background-attachment:fixed — it's broken on iOS Safari and leaves
+     unpainted bands at the bottom; html's base --bg fill backstops it. */
   color: var(--text);
   min-height: 100vh;
   min-height: 100dvh;                 /* dynamic viewport — avoids iOS URL-bar jump */
@@ -552,6 +553,25 @@ main {
 }
 
 /* ── controls bar ────────────────────────────────────────────── */
+.filters-toggle {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 8px 14px; margin-bottom: 12px; min-height: 38px;
+  background: color-mix(in srgb, var(--surf) 72%, transparent);
+  border: 1px solid var(--border2); border-radius: 999px;
+  color: var(--text2); cursor: pointer;
+  font-family: var(--fd); font-size: 0.62rem; font-weight: 600;
+  letter-spacing: 0.14em; text-transform: uppercase;
+  transition: color 0.15s, border-color 0.15s, background 0.15s;
+}
+.filters-toggle:hover { color: var(--text); border-color: var(--border3); }
+.filters-toggle .ft-ic { font-size: 0.8rem; color: var(--accent); }
+.filters-toggle .ft-chev { transition: transform 0.22s ease; color: var(--dim); margin-left: 2px; }
+.filters-toggle[aria-expanded="false"] .ft-chev { transform: rotate(-90deg); }
+.filters-toggle .ft-count {
+  display: inline-grid; place-items: center; min-width: 17px; height: 17px; padding: 0 5px;
+  border-radius: 999px; background: var(--accent); color: #04121a;
+  font-family: var(--fm); font-size: 0.56rem; font-weight: 700; letter-spacing: 0;
+}
 .controls {
   display: flex; flex-wrap: wrap; align-items: center; gap: 10px;
   padding: 12px 14px;
@@ -1605,7 +1625,7 @@ main {
 .foot {
   position: relative; z-index: 2;
   max-width: var(--maxw); margin: 0 auto;
-  padding: 0 clamp(16px, 3.5vw, 44px) calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 28px);
+  padding: 0 clamp(16px, 3.5vw, 44px) calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 12px);
   display: flex; flex-wrap: wrap; gap: 8px 24px;
   justify-content: space-between;
   font-family: var(--fm); font-size: 0.58rem; letter-spacing: 0.12em;
@@ -1644,6 +1664,15 @@ main {
 }
 @media (max-width: 720px) {
   .icon-btn .btn-txt, .icon-btn kbd { display: none; }
+  /* keep every top-right control on-screen: drop the subtitle, tighten the
+     brand, hide the keyboard-shortcuts button (touch has no keyboard), and
+     collapse the data badge to its status dot */
+  .brand small { display: none; }
+  .brand { font-size: 0.66rem; letter-spacing: 0.14em; gap: 9px; }
+  #help-btn { display: none; }
+  .top-actions { gap: 6px; }
+  .src-badge .src-txt { display: none; }
+  .src-badge { gap: 0; }
   .tl-row { grid-template-columns: 64px minmax(0,1fr) 90px 18px; gap: 10px; }
   .tl-veh { display: none; }
   .tl-detail-grid { grid-template-columns: 1fr; padding-left: 14px; }
@@ -1738,7 +1767,13 @@ main {
       <div class="stat"><div class="stat-num" id="stat-year">—</div><div class="stat-lbl">Tracked This Year</div></div>
     </div>
 
-    <div class="controls" role="group" aria-label="Sort and filter launches">
+    <button class="filters-toggle" id="filters-toggle" aria-expanded="true" aria-controls="controls-body">
+      <span class="ft-ic" aria-hidden="true">⚲</span>
+      <span>Sort &amp; Filter</span>
+      <span class="ft-count" id="ft-count" hidden></span>
+      <span class="ft-chev" aria-hidden="true">▾</span>
+    </button>
+    <div class="controls" id="controls-body" role="group" aria-label="Sort and filter launches">
       <button class="chip chip-watch" id="watch-chip" aria-pressed="false" data-watch-filter>★ <span id="watch-count">0</span></button>
       <span class="ctl-sep" aria-hidden="true"></span>
       <span class="ctl-lbl" id="sort-lbl">Sort</span>
@@ -2637,7 +2672,29 @@ function setFilter(kind, value) {                // toggling an active filter cl
   S.filters[kind] = S.filters[kind] === value ? null : value;
   S.expanded = null;
   renderControls(); renderLegend(); renderMissions(); renderTimeline();
+  updateFilterCount();
   writeHash();
+}
+/* ── collapsible Missions filters ── */
+function updateFilterCount() {
+  const el = $('#ft-count'); if (!el) return;
+  const n = (S.filters.provider ? 1 : 0) + (S.filters.status ? 1 : 0) + (S.filters.watch ? 1 : 0);
+  el.hidden = n === 0;
+  el.textContent = n;
+}
+function setFiltersOpen(open, persist) {
+  const btn = $('#filters-toggle'), body = $('#controls-body');
+  if (!btn || !body) return;
+  body.hidden = !open;
+  btn.setAttribute('aria-expanded', String(open));
+  if (persist) { try { localStorage.setItem('mc2-filters-open', open ? '1' : '0'); } catch { /* private mode */ } }
+}
+function initFilters() {
+  let open;
+  try { const s = localStorage.getItem('mc2-filters-open'); open = s === null ? innerWidth >= 768 : s === '1'; }
+  catch { open = innerWidth >= 768; }               // default: open on desktop, collapsed on phones
+  setFiltersOpen(open, false);
+  updateFilterCount();
 }
 
 /* ════════════════════════════════════════════════════════════════
@@ -2707,6 +2764,7 @@ function toggleWatch(id) {
 function toggleWatchFilter() {
   S.filters.watch = !S.filters.watch;
   updateWatchChip();
+  updateFilterCount();
   renderMissions(); renderTimeline();
   writeHash();
 }
@@ -5139,7 +5197,7 @@ function readHash() {
   S.filters.provider = prov || null;
   S.filters.status = (stat && STATUS[stat]) ? stat : null;
   S.filters.watch = watch;
-  renderControls(); renderLegend(); renderMissions(); renderTimeline(); updateWatchChip();
+  renderControls(); renderLegend(); renderMissions(); renderTimeline(); updateWatchChip(); updateFilterCount();
   const tab = p.get('tab');
   if (tab && $('#tab-' + tab)) switchTab(tab);
   const lid = p.get('launch');
@@ -5611,7 +5669,7 @@ document.addEventListener('click', e => {
   if (e.target === $('#modal')) { closeModal(); return; }
   if (e.target === $('#palette')) { closePalette(); return; }
   if (e.target === $('#shortcuts') || e.target === $('#alerts-dialog')) { closeSheet(); return; }
-  const t = e.target.closest('[data-tab],[data-open-modal],[data-launch],[data-prov-chip],[data-st-chip],[data-clear-filters],[data-range],[data-expand],[data-co-provider],[data-mstep],[data-pal-idx],[data-feed-play],[data-feed-pip],[data-feed-dock],[data-live-watch],[data-star],[data-watch-filter],[data-ics],[data-clock],[data-sat],[data-glayer],[data-wxi],#sat-locate,#density-btn,#search-btn,#theme-btn,#tz-btn,#alerts-btn,#help-btn,#sc-close,#al-close,#clock-close,#clock-fs,#clock-audio,#m-close,#gs-close,#pip-close,#pip-expand');
+  const t = e.target.closest('[data-tab],[data-open-modal],[data-launch],[data-prov-chip],[data-st-chip],[data-clear-filters],[data-range],[data-expand],[data-co-provider],[data-mstep],[data-pal-idx],[data-feed-play],[data-feed-pip],[data-feed-dock],[data-live-watch],[data-star],[data-watch-filter],[data-ics],[data-clock],[data-sat],[data-glayer],[data-wxi],#filters-toggle,#sat-locate,#density-btn,#search-btn,#theme-btn,#tz-btn,#alerts-btn,#help-btn,#sc-close,#al-close,#clock-close,#clock-fs,#clock-audio,#m-close,#gs-close,#pip-close,#pip-expand');
   if (!t) return;
   if (t.dataset.liveWatch) { watchLiveHero(t.dataset.liveWatch); return; }
   if (t.dataset.sat !== undefined) { openSatPanel(t.dataset.sat); return; }
@@ -5640,9 +5698,11 @@ document.addEventListener('click', e => {
   if (t.dataset.launch) { openModal(t.dataset.launch, t); return; }
   if (t.dataset.provChip) { setFilter('provider', t.dataset.provChip); return; }
   if (t.dataset.stChip) { setFilter('status', t.dataset.stChip); return; }
+  if (t.id === 'filters-toggle') { setFiltersOpen($('#controls-body').hidden, true); return; }
   if (t.hasAttribute('data-clear-filters')) {
     S.filters.provider = null; S.filters.status = null;
     renderControls(); renderLegend(); renderMissions(); renderTimeline();
+    updateFilterCount();
     writeHash();
     return;
   }
@@ -5799,6 +5859,7 @@ function boot() {
   initSky();
   setData(SEED_UPCOMING, SEED_PAST, 'seed');
   S.watch.forEach(id => { const l = S.byId.get(id); if (l) seedRemindersFor(l); });
+  initFilters();                                 // collapsible Missions filters (collapsed on phones)
   readHash();                                    // restore a shared/bookmarked view
   window.addEventListener('hashchange', readHash);
   setInterval(cdTickAll, 1000);
